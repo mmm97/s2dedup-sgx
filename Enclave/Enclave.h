@@ -26,20 +26,18 @@ char* getenv(char* name);
 int fflush(void* stream);
 void exit(int status);
 
-int trusted_init(int algorithm, char* key, int key_size);
-int trusted_encode(uint8_t *iv, size_t iv_len, \
-                   uint8_t *dest, size_t dest_size, \
-                   const uint8_t* src, size_t src_size);
-int trusted_decode(uint8_t *iv, size_t iv_len, \
-                   uint8_t *dest, size_t dest_size, \
-                   uint8_t *digest, size_t digest_size, \
-                   const uint8_t* src, size_t src_size);
-int trusted_compute_hash(int algorithm, 
-						 uint8_t *data, size_t data_size, 
-						 uint8_t *digest, size_t digest_size);
-int trusted_reencrypt(uint8_t *iv, size_t iv_len, \
-                   uint8_t *dest, size_t dest_size, \
-                   const uint8_t* src, size_t src_size);
+int encode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size,  uint8_t *mac, size_t mac_size, \
+           uint8_t *dest, size_t dest_size, const uint8_t* src, size_t src_size);
+
+int decode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size,  uint8_t *mac, size_t mac_size, \
+           uint8_t *dest, size_t dest_size, const uint8_t* src, size_t src_size);
+
+
+int trusted_init(unsigned char* key, int key_size);
+int trusted_compute_hash(uint8_t *data, size_t data_size, uint8_t *digest, size_t digest_size);
+int trusted_reencrypt(uint8_t *dest, size_t dest_size, const uint8_t* src, size_t src_size);
+int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, const uint8_t* src, size_t src_size);
+
 #if defined(__cplusplus)
 }
 #endif

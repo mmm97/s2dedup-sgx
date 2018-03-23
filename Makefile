@@ -4,7 +4,6 @@ SGX_MODE ?= HW
 SGX_ARCH ?= x64
 APP_DIR=App
 ENCLAVE_DIR=Enclave
-DRIVER_OPENSSL_DIR=Openssl
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -73,11 +72,10 @@ endif
 
 ####### Enclave Settings ########
 
-Aux_C_Files :=  $(wildcard $(DRIVER_OPENSSL_DIR)/*.c)
 Enclave_C_Files :=  $(wildcard $(ENCLAVE_DIR)/*.c)
 Enclave_C_Objects :=  $(Enclave_C_Files:.c=.o) $(Aux_C_Files:.c=.o)
 
-Enclave_Include_Paths := -I$(ENCLAVE_DIR) -I$(DRIVER_OPENSSL_DIR) -I$(SGX_SDK_INC) -I$(SGX_SDK_INC)/tlibc -I$(STL_PORT_INC)/stlport -I$(OPENSSL_PACKAGE)/include -I$(OPENSSL_PACKAGE)/include/openssl
+Enclave_Include_Paths := -I$(ENCLAVE_DIR) -I$(SGX_SDK_INC) -I$(SGX_SDK_INC)/tlibc -I$(STL_PORT_INC)/stlport -I$(OPENSSL_PACKAGE)/include -I$(OPENSSL_PACKAGE)/include/openssl
 
 Common_C_Cpp_Flags := -DOS_ID=$(OS_ID) $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpic -fpie -fstack-protector -fno-builtin-printf -Wformat -Wformat-security $(Enclave_Include_Paths) -include "tsgxsslio.h"
 Enclave_C_Flags := $(Common_C_Cpp_Flags) -Wno-implicit-function-declaration -std=c11
@@ -99,7 +97,7 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 
 ENCLAVE	          = Enclave
 PRIVATE_KEY       = Enclave_private.pem
-PUBLIC_KEY        = public_key.pem
+PUBLIC_KEY        = Enclave_public_key.pem
 KEY_SIZE          = 3072
 ENCLAVE_EDL       = $(ENCLAVE).edl
 ENCLAVE_CONFIG    = $(ENCLAVE).config.xml
@@ -120,10 +118,10 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Include_Paths := -I$(DRIVER_OPENSSL_DIR) -I$(APP_DIR) -I$(SGX_SDK)/include 
+App_Include_Paths := -I$(APP_DIR) -I$(SGX_SDK)/include 
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
-App_srcs := $(wildcard $(APP_DIR)/*.c) $(DRIVER_OPENSSL_DIR)/symmetric.c
+App_srcs := $(wildcard $(APP_DIR)/*.c) 
 App_objs := $(App_srcs:.c=.o)
 
 # Three configuration modes - Debug, prerelease, release
@@ -165,10 +163,6 @@ $(APP_DIR)/%.o: $(APP_DIR)/%.c $(APP_DIR)/%.h
 	@$(CC) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
-$(DRIVER_OPENSSL_DIR)/%.o: $(DRIVER_OPENSSL_DIR)/%.c $(DRIVER_OPENSSL_DIR)/%.h
-	@$(CC) $(App_C_Flags) -c $< -o $@
-	@echo "CC   <=  $<"
-
 $(App_Name): $(APP_DIR)/Enclave_u.o $(App_objs)
 	@$(CC) $^ -o $@ $(App_Link_Flags)
 	@echo "LINK =>  $@"
@@ -202,19 +196,19 @@ force_check:
 
 .PHONY: scrub
 scrub: 
-	echo "$(INDENT)[RM]  " $(PRIVATE_KEY) $(PUBLIC_KEY)
-	$(RM) $(PRIVATE_KEY) $(PUBLIC_KEY)
+	echo "$(INDENT)[RM]  " $(ENCLAVE_DIR)/$(PRIVATE_KEY) $(ENCLAVE_DIR)/$(PUBLIC_KEY)
+	$(RM) $(ENCLAVE_DIR)/$(PRIVATE_KEY) $(ENCLAVE_DIR)/$(PUBLIC_KEY)
 
 .PHONY: configure
 configure: 
-	echo "$(INDENT)[GEN] $(PRIVATE_KEY) ($(KEY_SIZE) bits)"
+	echo "$(INDENT)[GEN] $(ENCLAVE_DIR)/$(PRIVATE_KEY) ($(KEY_SIZE) bits)"
 
 	# generate 3072 bit private RSA key
-	openssl genrsa -out $(PRIVATE_KEY) -3 $(KEY_SIZE)
+	openssl genrsa -out $(ENCLAVE_DIR)/$(PRIVATE_KEY) -3 $(KEY_SIZE)
 	
-	echo "$(INDENT)[EXT] $(PUBLIC_KEY)"
+	echo "$(INDENT)[EXT] $(ENCLAVE_DIR)/$(PUBLIC_KEY)"
 	# extract public key
-	openssl rsa -in $(PRIVATE_KEY) -pubout -out $(PUBLIC_KEY) 
+	openssl rsa -in $(ENCLAVE_DIR)/$(PRIVATE_KEY) -pubout -out $(ENCLAVE_DIR)/$(PUBLIC_KEY) 
 	
 	# sign enclave
 	#sgx_sign sign -key private_key.pem -enclave Enclave/tresorencl.so -out tresorencl.signed.so
@@ -232,9 +226,6 @@ clean:
 	
 	echo "$(INDENT)[RM] $(APP_DIR)/App.o $(APP_DIR)/Enclave_u.o"
 	$(RM) $(APP_DIR)/App.o $(APP_DIR)/Enclave_u.o
-
-	echo "$(INDENT)[RM] $(DRIVER_OPENSSL_DIR)/*.o"
-	$(RM) $(DRIVER_OPENSSL_DIR)/*.o
 
 	echo "$(INDENT)[RM] $(APP_DIR)/Enclave_u.c $(APP_DIR)/Enclave_u.h"
 	$(RM) $(APP_DIR)/Enclave_u.c $(APP_DIR)/Enclave_u.h

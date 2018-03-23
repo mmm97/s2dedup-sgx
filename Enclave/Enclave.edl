@@ -20,11 +20,12 @@ enclave {
 
 
     trusted {
-        public int trusted_init(int algorithm, [in, size=key_size] char* key, int key_size);     
-        public int trusted_encode([in, size=iv_len] uint8_t* iv, size_t iv_len, [out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
-        public int trusted_decode([in, size=iv_len] uint8_t* iv, size_t iv_len, [out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t* digest, size_t digest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
-        public int trusted_compute_hash(int algorithm, [in, size=data_size] uint8_t *data, size_t data_size, [out, size=digest_size] uint8_t *digest, size_t digest_size);
-        public int trusted_reencrypt([in, size=iv_len] uint8_t* iv, size_t iv_len, [out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
-        
+        public int encode([in, size=key_size] unsigned char* key, int key_size, [in, size=iv_size] uint8_t *iv, size_t iv_size, [out, size=mac_size] uint8_t *mac, size_t mac_size, [out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
+        public int decode([in, size=key_size] unsigned char* key, int key_size, [in, size=iv_size] uint8_t *iv, size_t iv_size, [in, size=mac_size] uint8_t *mac, size_t mac_size, [out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
+
+        public int trusted_init([in, size=key_size] unsigned char* key, int key_size);     
+        public int trusted_compute_hash([in, size=data_size] uint8_t *data, size_t data_size, [out, size=digest_size] uint8_t *digest, size_t digest_size);
+        public int trusted_reencrypt([out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
+        public int trusted_reencrypt_hash([out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
     };
 };

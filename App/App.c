@@ -1,9 +1,13 @@
 #include "App.h"
 
-char CLIENT_KEY[16]  = "C53C0E2F1B0B19A";
-unsigned char IV[16] = "C53C0E2F1B0B19A";
-int CLIENT_KEY_SIZE  = 16; 
-int IV_SIZE          = 16;
+#define KEY_SIZE 16 
+#define IV_SIZE  12
+#define MAC_SIZE 16
+#define HASH_LEN 32
+
+unsigned char CLIENT_KEY[KEY_SIZE]  = "C53C0E2F1B0B19A";
+unsigned char IV[IV_SIZE]           = "C53C0E2F1B";
+
 
 void print_digest(unsigned char *digest, int digest_size) {
     int n;
@@ -41,7 +45,7 @@ double func_test1(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, 
     int res;
     clock_t enclave_startTime, enclave_endTime;
     enclave_startTime = clock();
-    while (trusted_decode(eid, &res, IV, IV_SIZE, dest, dest_len, hash, 16, str, str_len) == SGX_ERROR_ENCLAVE_LOST) {
+    while (trusted_reencrypt_hash(eid, &res, dest, dest_len, hash, HASH_LEN, str, str_len) == SGX_ERROR_ENCLAVE_LOST) {
         /* if the enclave is lost, release its resources, and bring the enclave back up. */
         printf("[ENCLAVE_LOST] -> %d\n", (int) eid);
         if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
@@ -53,12 +57,12 @@ double func_test1(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, 
     return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
 
-/* TEST2: Reencrypt data */
+// /* TEST2: Reencrypt data */
 double func_test2(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     int res=0;
     clock_t enclave_startTime, enclave_endTime;
     enclave_startTime = clock();
-    while (trusted_reencrypt(eid, &res, IV, IV_SIZE, dest, dest_len, str, str_len) == SGX_ERROR_ENCLAVE_LOST) {
+    while (trusted_reencrypt(eid, &res, dest, dest_len, str, str_len) == SGX_ERROR_ENCLAVE_LOST) {
         /* if the enclave is lost, release its resources, and bring the enclave back up. */
         printf("[ENCLAVE_LOST] -> %d\n", (int) eid);
         if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
@@ -70,12 +74,12 @@ double func_test2(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, 
     return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
 
-/* TEST3: Compute hash */
+// /* TEST3: Compute hash */
 double func_test3(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     int res;
     clock_t enclave_startTime, enclave_endTime;
     enclave_startTime = clock();
-    while (trusted_compute_hash(eid, &res, 1, str, str_len, hash, 16) == SGX_ERROR_ENCLAVE_LOST) {
+    while (trusted_compute_hash(eid, &res, str, str_len, hash, HASH_LEN) == SGX_ERROR_ENCLAVE_LOST) {
         /* if the enclave is lost, release its resources, and bring the enclave back up. */
         printf("[ENCLAVE_LOST] -> %d\n", (int) eid);
         if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
@@ -90,7 +94,7 @@ void run_test_ops(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8_
     double total_enclave_time_elapsed=0;
     uint64_t ops = 0;
 
-    unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * 16);
+    unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
 
 	while (ops < n_ops) 
 	{
@@ -115,7 +119,7 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
     clock_t x_startTime, x_countTime;
     uint64_t ops = 0;
 
-    unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * 16);
+    unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
 
     count_down_time_in_secs = time_to_run * 60;
     x_startTime=clock();  // start clock
@@ -138,7 +142,7 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
     
     // print results
     printf("\n\nTotal ops:  %lu\n", ops);
-    printf("Throughput: %.3f ops/second\n", (double) ops / count_down_time_in_secs);
+    printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
     printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
     printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
 }
@@ -153,7 +157,7 @@ void usage(void){
 
 int main(int argc, char const *argv[]) {
 
-    int res, test=3, ciphertext_size;
+    int res, test=3, ciphertext_size, encrypted_size;
     size_t block_size=128;
     unsigned int time_to_run=0;
     uint64_t n_ops=0;
@@ -190,9 +194,12 @@ int main(int argc, char const *argv[]) {
 		--argc;
 	}
 
+    ciphertext_size = block_size + IV_SIZE + MAC_SIZE;
+
     unsigned char *randomstr  = (unsigned char*) malloc(sizeof(unsigned char) * block_size);
-    unsigned char *ciphertext = (unsigned char*) malloc(sizeof(unsigned char) * (block_size + 16) );
-    unsigned char *dest = (unsigned char*) malloc(sizeof(unsigned char) * (block_size + 16) );
+    unsigned char *ciphertext = (unsigned char*) malloc(sizeof(unsigned char) * ciphertext_size);
+    unsigned char *dest = (unsigned char*) malloc(sizeof(unsigned char) * ciphertext_size);
+    unsigned char *mac = (unsigned char*) malloc(sizeof(unsigned char) * MAC_SIZE);
 
     // Generate a random string with size = block_size
     randstring(randomstr, block_size);
@@ -201,9 +208,16 @@ int main(int argc, char const *argv[]) {
     eid = 0;
     if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
     
-    // Encrypt random string
-    if (openssl_init(CLIENT_KEY, CLIENT_KEY_SIZE) != EXIT_SUCCESS) printf("<T> openssl init error!\n");
-    ciphertext_size = openssl_encode(IV, ciphertext, randomstr, block_size);
+    // // Encrypt random string
+    
+    encode(eid, &encrypted_size, CLIENT_KEY, KEY_SIZE, IV, IV_SIZE, mac, MAC_SIZE, &ciphertext[IV_SIZE], block_size, randomstr, block_size);
+    memcpy(ciphertext, IV, IV_SIZE);
+    memcpy(&ciphertext[IV_SIZE+encrypted_size], mac, MAC_SIZE);
+
+    // printf("iv        : %d -> \'%.*s\'\n", IV_SIZE, IV_SIZE, ciphertext);
+    // printf("mac       : %d -> \'%.*s\'\n", MAC_SIZE, MAC_SIZE, &ciphertext[IV_SIZE+encrypted_size]);
+    // printf("encrypt   : %d -> \'%.*s\'\n", encrypted_size, encrypted_size, &ciphertext[IV_SIZE]);
+    // printf("ciphertext: %d -> \'%.*s\'\n", ciphertext_size, ciphertext_size, ciphertext);
 
     if (n_ops > 0) printf("Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else printf("Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
@@ -212,12 +226,12 @@ int main(int argc, char const *argv[]) {
 
     switch(test) {
         case 1: 
-            trusted_init(eid, &res, 1, CLIENT_KEY, CLIENT_KEY_SIZE);
+            trusted_init(eid, &res, CLIENT_KEY, KEY_SIZE);
             if (n_ops > 0) run_test_ops(func_test1, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test1, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
         case 2:
-            trusted_init(eid, &res, 1, CLIENT_KEY, CLIENT_KEY_SIZE);
+            trusted_init(eid, &res, CLIENT_KEY, KEY_SIZE);
             if (n_ops > 0) run_test_ops(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
@@ -233,5 +247,6 @@ int main(int argc, char const *argv[]) {
     free(randomstr);
     free(ciphertext);
     free(dest);
+    free(mac);
     return EXIT_SUCCESS;
 }
