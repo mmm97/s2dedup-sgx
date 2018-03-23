@@ -1,0 +1,30 @@
+enclave {
+    from "sgx_tstdc.edl" import *;
+    include "sgx_tseal.h"
+
+    /* 
+     * uprint - invokes OCALL to display string buffer inside the enclave.
+     *  [in]: copy the string buffer to App outside.
+     *  [string]: specifies 'str' is a NULL terminated buffer.
+     */
+    untrusted {
+        void uprint([in, string] const char *str);
+        void usgx_exit(int err);
+
+        /* Write sealed key to disk */
+        uint32_t save_sdata([in, size=sdata_len] uint8_t *sdata, uint32_t sdata_len);
+
+        /* Read sealed key from dis */
+        uint32_t load_sdata([out, size=sdata_len] uint8_t *sdata, uint32_t sdata_len, [out] uint32_t *sdata_len_out);
+    };
+
+
+    trusted {
+        public int trusted_init(int algorithm, [in, size=key_size] char* key, int key_size);     
+        public int trusted_encode([in, size=iv_len] uint8_t* iv, size_t iv_len, [out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
+        public int trusted_decode([in, size=iv_len] uint8_t* iv, size_t iv_len, [out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t* digest, size_t digest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
+        public int trusted_compute_hash(int algorithm, [in, size=data_size] uint8_t *data, size_t data_size, [out, size=digest_size] uint8_t *digest, size_t digest_size);
+        public int trusted_reencrypt([in, size=iv_len] uint8_t* iv, size_t iv_len, [out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] const uint8_t* src, size_t src_size);
+        
+    };
+};
