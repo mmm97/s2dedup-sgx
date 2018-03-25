@@ -123,7 +123,7 @@ endif
 App_Include_Paths := -I$(DRIVER_OPENSSL_DIR) -I$(APP_DIR) -I$(SGX_SDK)/include 
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
-App_srcs := $(wildcard $(APP_DIR)/*.c) $(DRIVER_OPENSSL_DIR)/symmetric.c
+App_srcs := $(wildcard $(APP_DIR)/*.c)
 App_objs := $(App_srcs:.c=.o)
 
 # Three configuration modes - Debug, prerelease, release
@@ -138,7 +138,7 @@ else
 		App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -lcrypto
+App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -lcrypto -lzlog
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -207,14 +207,14 @@ scrub:
 
 .PHONY: configure
 configure: 
-	echo "$(INDENT)[GEN] $(PRIVATE_KEY) ($(KEY_SIZE) bits)"
+	echo "$(INDENT)[GEN] $(ENCLAVE_DIR)/$(PRIVATE_KEY) ($(KEY_SIZE) bits)"
 
 	# generate 3072 bit private RSA key
-	openssl genrsa -out $(PRIVATE_KEY) -3 $(KEY_SIZE)
+	openssl genrsa -out $(ENCLAVE_DIR)/$(PRIVATE_KEY) -3 $(KEY_SIZE)
 	
-	echo "$(INDENT)[EXT] $(PUBLIC_KEY)"
+	echo "$(INDENT)[EXT] $(ENCLAVE_DIR)/$(PUBLIC_KEY)"
 	# extract public key
-	openssl rsa -in $(PRIVATE_KEY) -pubout -out $(PUBLIC_KEY) 
+	openssl rsa -in $(ENCLAVE_DIR)/$(PRIVATE_KEY) -pubout -out $(ENCLAVE_DIR)/$(PUBLIC_KEY) 
 	
 	# sign enclave
 	#sgx_sign sign -key private_key.pem -enclave Enclave/tresorencl.so -out tresorencl.signed.so

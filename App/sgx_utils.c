@@ -2,7 +2,7 @@
 
 /* SGX Function for enclave creation */
 int sgxCreateEnclave() {
-    char *enclavefilepath = (char*) "/home/gsd/Dissertation/SGX_microtest/Enclave/Enclave.signed.so"; 
+    char *enclavefilepath = (char*) "/home/gsd/MicroBenchmarks/SGX_MicroBenchmark/Enclave/Enclave.signed.so"; 
 	sgx_launch_token_t token = {0};
 	int updated = 0;
 	sgx_status_t ret;
@@ -25,6 +25,13 @@ int sgxDestroyEnclave() {
         // printf("sgxDestroyEnclave: Enclave destroyed..\n");
     }
 	return ret;
+}
+
+/* if the enclave is lost, release its resources, and bring the enclave back up. */
+void recreateEnclave() {
+    if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
+    if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
+    printf("[ENCLAVE_LOST] New enclave id: %d\n", (int) eid);    
 }
 
 void print_sgx_error_message(sgx_status_t err) {
