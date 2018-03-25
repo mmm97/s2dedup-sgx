@@ -27,6 +27,13 @@ int sgxDestroyEnclave() {
 	return ret;
 }
 
+/* if the enclave is lost, release its resources, and bring the enclave back up. */
+void recreateEnclave() {
+    if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
+    if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
+    printf("[ENCLAVE_LOST] New enclave id: %d\n", (int) eid);    
+}
+
 void print_sgx_error_message(sgx_status_t err) {
     switch(err) {
         case SGX_ERROR_INVALID_PARAMETER:             

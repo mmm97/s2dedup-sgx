@@ -96,8 +96,8 @@ uint32_t getKey() {
     return EXIT_SUCCESS;
 }
 
-int encode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size,  uint8_t *mac, size_t mac_size, \
-           uint8_t *dest, size_t dest_size, const uint8_t* src, size_t src_size) {
+int encode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size, uint8_t *mac, size_t mac_size, \
+           uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
     
     sgx_status_t err;
     
@@ -108,20 +108,59 @@ int encode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size,  uint8
 }
 
 int decode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size,  uint8_t *mac, size_t mac_size, \
-           uint8_t *dest, size_t dest_size, const uint8_t* src, size_t src_size) {
+           uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
 
     sgx_status_t err;
     
-    err = sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*) key, src, src_size, dest, iv, iv_size, NULL, 0, (sgx_aes_gcm_128bit_tag_t*) mac);
+    err = sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*) key, src, src_size, dest, iv, iv_size, NULL, 0, (const sgx_aes_gcm_128bit_tag_t*) mac);
     if (err != SGX_SUCCESS) { printf("sgx_rijndael128GCM_decrypt\n"); usgx_exit(err);}
 
     return src_size;
 }
 
+int trusted_encode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
+    sgx_status_t err;
+    int ciphertext_size;
+
+    unsigned char *iv = (unsigned char*) malloc(sizeof(unsigned char) * IV_SIZE);
+    unsigned char *ciphertext = (unsigned char*) malloc(sizeof(unsigned char) * src_size);    
+    unsigned char *p_out_mac = (unsigned char*) malloc(sizeof(unsigned char) * (MAC_SIZE));
+
+    /* choose random nonce */
+    err = sgx_read_rand(iv, IV_SIZE);
+    if (err != SGX_SUCCESS) { usgx_exit(err); }
+
+    ciphertext_size = encode(key, key_size, iv, IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, src_size, src, src_size);
+
+    memcpy(dest, ciphertext, ciphertext_size);
+    memcpy(&dest[ciphertext_size], iv, IV_SIZE);
+    memcpy(&dest[ciphertext_size + IV_SIZE], p_out_mac, MAC_SIZE);
+
+    free(ciphertext);
+    free(p_out_mac);
+
+    return ciphertext_size + IV_SIZE + MAC_SIZE;
+}
+
+int trusted_decode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
+    int plaintext_size = src_size - IV_SIZE - MAC_SIZE;
+    
+    unsigned char *plaintext = (unsigned char*) malloc(sizeof(unsigned char) * plaintext_size);
+
+    plaintext_size = decode(key, key_size, &src[plaintext_size], IV_SIZE, &src[plaintext_size+IV_SIZE], MAC_SIZE, plaintext, plaintext_size, src, plaintext_size);
+
+    memcpy(dest, plaintext, plaintext_size);
+
+    free(plaintext);
+
+    return plaintext_size;
+}
+
 int trusted_init(unsigned char* key, int key_size) {
     if (KEY_SIZE != key_size) return -1;
-    CLIENT_KEY = key;
-
+    // CLIENT_KEY = key;
+    CLIENT_KEY = (unsigned char*) malloc(sizeof(unsigned char) * KEY_SIZE);
+    memcpy(CLIENT_KEY, key, KEY_SIZE);
     if (getKey() != EXIT_SUCCESS) printf("<T> getKey error!\n");
     return 0;
 }
@@ -141,7 +180,7 @@ int trusted_compute_hash(uint8_t *data, size_t data_size, uint8_t *digest, size_
  * Reencrypt function:
  *   Decrypt data with client key and encrypt with server key
  */
-int trusted_reencrypt(uint8_t *dest, size_t dest_size, const uint8_t* src, size_t src_size) {
+int trusted_reencrypt(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
 
     unsigned char *plaintext, *ciphertext, *p_out_mac;
     int plaintext_size, ciphertext_size;
@@ -150,29 +189,29 @@ int trusted_reencrypt(uint8_t *dest, size_t dest_size, const uint8_t* src, size_
     // Decode data with server key
     plaintext_size = src_size - IV_SIZE - MAC_SIZE;
     plaintext = (unsigned char*) malloc(sizeof(unsigned char) * plaintext_size);
-    plaintext_size = decode(CLIENT_KEY, KEY_SIZE, (unsigned char*)src, IV_SIZE, (unsigned char*) &src[src_size-MAC_SIZE], MAC_SIZE, plaintext, plaintext_size, &src[IV_SIZE], src_size-MAC_SIZE-IV_SIZE);
+    plaintext_size = decode(CLIENT_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, &src[plaintext_size+IV_SIZE], MAC_SIZE, plaintext, plaintext_size, src, plaintext_size);
 
     // *****************************
     // Encode data with client key
     ciphertext = (unsigned char*) malloc (sizeof(unsigned char*) * dest_size);
-    p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * MAC_SIZE);
-    ciphertext_size = encode(SERVER_KEY, KEY_SIZE, (unsigned char*)src, IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
+    p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * (MAC_SIZE+1));
+    ciphertext_size = encode(SERVER_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
 
-    memcpy(dest, src, IV_SIZE);
-    memcpy(&dest[IV_SIZE], ciphertext, ciphertext_size);
-    memcpy(&dest[IV_SIZE+ciphertext_size], p_out_mac, MAC_SIZE);
+    memcpy(dest, ciphertext, ciphertext_size);
+    memcpy(&dest[ciphertext_size], &src[plaintext_size], IV_SIZE);
+    memcpy(&dest[ciphertext_size+IV_SIZE], p_out_mac, MAC_SIZE);
     free(plaintext);
     free(ciphertext);
     free(p_out_mac);
 
-    return IV_SIZE + ciphertext_size + MAC_SIZE;
+    return ciphertext_size + IV_SIZE + MAC_SIZE;
 }
 
 /*
  * Reencrypt function:
  *   Decrypt data with client key, compute plaintext hash and encrypt with server key
  */
-int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, const uint8_t* src, size_t src_size) {
+int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, uint8_t* src, size_t src_size) {
 
     unsigned char *plaintext, *ciphertext, *aux_digest, *p_out_mac;
     int plaintext_size, ciphertext_size;
@@ -181,8 +220,7 @@ int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, siz
     // Decode data with server key
     plaintext_size = src_size - IV_SIZE - MAC_SIZE;
     plaintext = (unsigned char*) malloc(sizeof(unsigned char) * plaintext_size);
-    plaintext_size = decode(CLIENT_KEY, KEY_SIZE, (unsigned char*)src, IV_SIZE, (unsigned char*) &src[src_size-MAC_SIZE], MAC_SIZE, plaintext, plaintext_size, &src[IV_SIZE], src_size-MAC_SIZE-IV_SIZE);
-
+    plaintext_size = decode(CLIENT_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, &src[plaintext_size+IV_SIZE], MAC_SIZE, plaintext, plaintext_size, src, plaintext_size);
     // *****************************
     // Compute Hash
     aux_digest = (unsigned char*) malloc(sizeof(unsigned char) * digest_size);
@@ -191,12 +229,12 @@ int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, siz
     // *****************************
     // Encode data with client key
     ciphertext = (unsigned char*) malloc (sizeof(unsigned char*) * dest_size);
-    p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * MAC_SIZE);
-    ciphertext_size = encode(SERVER_KEY, KEY_SIZE, (unsigned char*)src, IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
+    p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * (MAC_SIZE+1));
+    ciphertext_size = encode(SERVER_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
 
-    memcpy(dest, src, IV_SIZE);
-    memcpy(&dest[IV_SIZE], ciphertext, ciphertext_size);
-    memcpy(&dest[IV_SIZE+ciphertext_size], p_out_mac, MAC_SIZE);
+    memcpy(dest, ciphertext, ciphertext_size);
+    memcpy(&dest[ciphertext_size], &src[plaintext_size], IV_SIZE);
+    memcpy(&dest[ciphertext_size+IV_SIZE], p_out_mac, MAC_SIZE);
     memcpy(digest, aux_digest, digest_size);
     
     free(plaintext);

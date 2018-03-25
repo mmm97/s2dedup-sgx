@@ -136,7 +136,7 @@ else
 		App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -lcrypto
+App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -lcrypto -lzlog
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -186,7 +186,7 @@ $(OUTPUT_T_UNSIG): $(ENCLAVE_DIR)/Enclave_t.o $(Enclave_C_Objects)
 	@echo "LINK =>  $@"
 
 $(OUTPUT_T): $(OUTPUT_T_UNSIG)
-	@$(SGX_ENCLAVE_SIGNER) sign -key $(ENCLAVE_DIR)/$(PRIVATE_KEY) -enclave $(OUTPUT_T_UNSIG) -out $@ -config $(ENCLAVE_DIR)/$(ENCLAVE_CONFIG)
+	@$(SGX_ENCLAVE_SIGNER) sign -enclave $(OUTPUT_T_UNSIG) -config $(ENCLAVE_DIR)/$(ENCLAVE_CONFIG) -out $@ -key $(ENCLAVE_DIR)/$(PRIVATE_KEY)  
 	@echo "SIGN =>  $@"
 
 
@@ -229,7 +229,10 @@ clean:
 
 	echo "$(INDENT)[RM] $(APP_DIR)/Enclave_u.c $(APP_DIR)/Enclave_u.h"
 	$(RM) $(APP_DIR)/Enclave_u.c $(APP_DIR)/Enclave_u.h
-	
+
+	echo "$(INDENT)[RM] $(APP_DIR)/*.o"
+	$(RM) $(APP_DIR)/*.o
+
 	echo "$(INDENT)[RM] $(App_Name)"
 	$(RM) $(App_Name)
 	

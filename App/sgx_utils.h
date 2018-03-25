@@ -10,6 +10,7 @@ sgx_enclave_id_t eid;
 
 int sgxCreateEnclave();
 int sgxDestroyEnclave();
+void recreateEnclave();
 void print_sgx_error_message(sgx_status_t err);
 
 void uprint(const char *str);
