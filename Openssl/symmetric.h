@@ -19,6 +19,8 @@
 
 int openssl_init(char* key, int block_size);
 
+unsigned char* openssl_rand_str(int length);
+
 int openssl_encode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size);
 
 int openssl_decode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size);

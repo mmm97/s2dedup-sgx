@@ -3,7 +3,8 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <stdint.h>
-#include "symmetric.h"
+
+#include "zlog.h"
+
 #include "openssl_impl.h"

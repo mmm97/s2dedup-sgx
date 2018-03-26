@@ -41,6 +41,37 @@ int openssl_init(char* key, int local_key_size) {
     return 0;
 }
 
+unsigned char* openssl_rand_str(int length) {
+    static int mySeed = 25011984;
+    char* string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-#'?!";
+    size_t stringLen = strlen(string);
+    unsigned char* randomString = NULL;
+
+    srand(time(NULL) * length + ++mySeed);
+
+    if (length < 1) {
+        length = 1;
+    }
+
+    randomString = malloc(sizeof(char) * (length + 1));
+
+    if (randomString) {
+        short key = 0;
+        int n;
+        for (n = 0; n < length; n++) {
+            key = rand() % stringLen;
+            randomString[n] = string[key];
+        }
+
+        randomString[length] = '\0';
+
+        return randomString;
+    } else {
+        // ERROR_MSG("No memory");
+        exit(1);
+    }
+}
+
 const EVP_CIPHER* get_cipher() {
     switch (KEYSIZE) {
         case 16:
