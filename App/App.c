@@ -215,6 +215,7 @@ int main(int argc, char const *argv[]) {
     // Generate a random string with size = block_size
     randstring(randomstr, block_size);
 
+    // printf("plaintext: %s\n", randomstr);
     // create enclave
     eid = 0;
     if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    

@@ -136,13 +136,12 @@ int encode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size, uint8_
            uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
 
     int res;
-
-    if (auth_init((char*)key, key_size, IV_SIZE, MAC_SIZE, 2) != 0) {
+    
+    if (auth_init((char*)key, key_size, IV_SIZE, MAC_SIZE, 1) != 0) {
         printf("encode: error auth_init\n");
         return EXIT_FAILURE;
     }
     res = auth_encode(iv, dest, src, src_size, mac);
-    
     return res;
 }
 
@@ -151,12 +150,12 @@ int decode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size, uint8_
 
     int res;
 
-    if (auth_init((char*)key, key_size, IV_SIZE, MAC_SIZE, 2) != 0) {
+    if (auth_init((char*)key, key_size, IV_SIZE, MAC_SIZE, 1) != 0) {
         printf("decode: error auth_init\n");
         return EXIT_FAILURE;
     }
     res = auth_decode(iv, dest, src, src_size, mac);
-    
+
     return res;
 }
 
@@ -172,7 +171,8 @@ int trusted_encode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_
 
     err = sgx_read_rand(iv, IV_SIZE);
     if (err != SGX_SUCCESS) { usgx_exit(err); }
-    
+
+
     ciphertext_size = encode(key, KEY_SIZE, iv, IV_SIZE, mac, MAC_SIZE, ciphertext, ciphertext_size, src, src_size);
 
     memcpy(dest, ciphertext, ciphertext_size);
@@ -191,11 +191,9 @@ int trusted_encode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_
 int trusted_decode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
     
     int plaintext_size = src_size - IV_SIZE - MAC_SIZE;
-    unsigned char* plaintext;
-    
+    unsigned char *plaintext;
     
     plaintext = (unsigned char*) malloc(sizeof(unsigned char) * plaintext_size);
-    
     plaintext_size = decode(key, KEY_SIZE, &src[plaintext_size], IV_SIZE, &src[plaintext_size+IV_SIZE], MAC_SIZE, plaintext, plaintext_size, src, plaintext_size);
     if (plaintext_size < 0) return -1;
 
@@ -261,7 +259,7 @@ int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, siz
     // Encode data with client key
     ciphertext = (unsigned char*) malloc (sizeof(unsigned char*) * dest_size);
     p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * (MAC_SIZE+1));
-    ciphertext_size = encode(SERVER_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
+    ciphertext_size = encode(CLIENT_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
 
     memcpy(dest, ciphertext, ciphertext_size);
     memcpy(&dest[ciphertext_size], &src[plaintext_size], IV_SIZE);
