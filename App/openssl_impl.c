@@ -50,6 +50,7 @@ int _decode(unsigned char* key, int key_size, uint8_t *iv, size_t iv_size, uint8
     }
     res = auth_decode(iv, dest, src, src_size, mac);
     
+    printf("res: %d\n", res);
     return res;
 }
 
@@ -142,16 +143,27 @@ int reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t dige
     plaintext_size = src_size - IV_SIZE - MAC_SIZE;
     plaintext = (unsigned char*) malloc(sizeof(unsigned char) * plaintext_size);
     plaintext_size = _decode(CLIENT_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, &src[plaintext_size+IV_SIZE], MAC_SIZE, plaintext, plaintext_size, src, plaintext_size);
+    printf("plaintext: %s\n", plaintext);
     // *****************************
     // Compute Hash
     aux_digest = (unsigned char*) malloc(sizeof(unsigned char) * digest_size);
     compute_hash(plaintext, plaintext_size, aux_digest, digest_size);
+    
+        int n;
+	char mdString[(digest_size * 2) + 1];
+	for (n = 0; n < digest_size; ++n) {
+        snprintf(&(mdString[n*2]), digest_size*2, "%02x", (unsigned int)aux_digest[n]);
+    }
+    
+    printf("[%d] \'%s\'\n", digest_size, mdString);
+
+    getchar();
 
     // *****************************
     // Encode data with client key
     ciphertext = (unsigned char*) malloc (sizeof(unsigned char*) * dest_size);
-    p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * (MAC_SIZE+1));
-    ciphertext_size = _encode(SERVER_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
+    p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * (MAC_SIZE));
+    ciphertext_size = _encode(CLIENT_KEY, KEY_SIZE, &src[plaintext_size], IV_SIZE, p_out_mac, MAC_SIZE, ciphertext, plaintext_size, plaintext, plaintext_size); 
 
     memcpy(dest, ciphertext, ciphertext_size);
     memcpy(&dest[ciphertext_size], &src[plaintext_size], IV_SIZE);

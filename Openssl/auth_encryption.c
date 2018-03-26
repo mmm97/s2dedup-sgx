@@ -204,7 +204,7 @@ int auth_decode(unsigned char* iv, unsigned char* dest, const unsigned char* src
         return plaintext_len;
     } else {
         /* Verify failed */
-        // DEBUG_MSG("Decode: fail\n");
+        printf("Decode: fail\n");
         return -1;
     }
 }

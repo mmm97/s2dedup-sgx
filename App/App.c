@@ -104,7 +104,7 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
 
     unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
 
-    count_down_time_in_secs = time_to_run * 60;
+    count_down_time_in_secs = time_to_run * 1;
     x_startTime=clock();  // start clock
 
     time_left=count_down_time_in_secs-x_seconds;   // update timer
@@ -209,8 +209,14 @@ int main(int argc, char const *argv[]) {
     // Generate a random string with size = block_size
     randstring(randomstr, block_size);
 
+    unsigned char*digest=(unsigned char*) malloc(sizeof(unsigned char)*HASH_LEN);
+    compute_hash(randomstr, block_size, digest, HASH_LEN);
+    print_digest(digest, HASH_LEN);
+
     // Encrypt random string
     ciphertext_size = encode(CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
+
+    printf("IV: %s\n", &ciphertext[ciphertext_size-MAC_SIZE-IV_SIZE]);
 
     if (n_ops > 0) printf("OPENSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else printf("OPENSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
@@ -236,6 +242,15 @@ int main(int argc, char const *argv[]) {
             break;
     }
 
+    int plaintext_size;
+    unsigned char *plaintext = (unsigned char*) malloc (sizeof(unsigned char) * block_size);
+    plaintext_size = decode(CLIENT_KEY, KEY_SIZE, plaintext, block_size, dest, ciphertext_size);
+
+    if (memcmp(randomstr, plaintext, block_size)!=0)   {
+        printf("randomstring != plaintext\n");
+        printf("randomstr: %s\n", randomstr);
+        printf("plaintext: %s\n", plaintext);
+    }
     free(randomstr);
     free(ciphertext);
     free(dest);
