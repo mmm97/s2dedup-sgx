@@ -7,9 +7,9 @@
 
 #include "symmetric.h"
 
-
 int KEYSIZE;
-unsigned char* KEY;
+// unsigned char* KEY;
+int OPERATION_MODE;
 
 int handleErrors(void) {
     // ERR_print_errors_fp(stderr);
@@ -22,13 +22,24 @@ int handleErrors(void) {
     return 0;
 }
 
-
-int openssl_init(char* key, int local_key_size) {
-    if (key == NULL) {
-        // ERROR_MSG("(symmetric.c) - init's key argument is NULL");
-        // exit(1);
-        return 1;
+int openssl_get_padding_size(int operation_mode) {
+    switch (operation_mode) {
+        case CBC:
+            return 16;
+        case CTR:
+            return 0;
+        default:
+            return 0;
     }
+}
+
+
+int openssl_init(int local_key_size, int operation_mode) {
+    // if (key == NULL) {
+    //     // ERROR_MSG("(symmetric.c) - init's key argument is NULL");
+    //     // exit(1);
+    //     return 1;
+    // }
 
 
     //FIXME
@@ -37,23 +48,58 @@ int openssl_init(char* key, int local_key_size) {
     // OpenSSL_add_all_algorithms();
     // OPENSSL_config(NULL);   
     KEYSIZE = local_key_size;
-    KEY = (unsigned char*)key; 
+    OPERATION_MODE = operation_mode;
+    // KEY = (unsigned char*)key; 
     return 0;
 }
 
-const EVP_CIPHER* get_cipher() {
-    switch (KEYSIZE) {
-        case 16:
+const EVP_CIPHER* get_128_cipher() {
+    switch (OPERATION_MODE) {
+        case CBC:
             return EVP_aes_128_cbc();
-        case 24:
+        case CTR:
+            return EVP_aes_128_ctr();
+        default:
+            return EVP_aes_128_cbc();
+    }
+}
+
+const EVP_CIPHER* get_192_cipher() {
+    switch (OPERATION_MODE) {
+        case CBC:
             return EVP_aes_192_cbc();
+        case CTR:
+            return EVP_aes_192_ctr();
+        default:
+            return EVP_aes_192_cbc();
+    }
+}
+
+const EVP_CIPHER* get_256_cipher() {
+    switch (OPERATION_MODE) {
+        case CBC:
+            return EVP_aes_256_cbc();
+        case CTR:
+            return EVP_aes_256_ctr();
         default:
             return EVP_aes_256_cbc();
     }
 }
 
+const EVP_CIPHER* get_cipher() {
+    switch (KEYSIZE) {
+        case 16:
+            return get_128_cipher();
+        case 24:
+            return get_192_cipher();
+        default:
+            return get_256_cipher();
+    }
+}
 
-int openssl_encode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size) {
+
+
+int openssl_encode(unsigned char* key, unsigned char* iv, unsigned char* dest, const unsigned char* src, int size) {
     EVP_CIPHER_CTX* ctx;
     int len;
     int ciphertext_len;
@@ -66,7 +112,7 @@ int openssl_encode(unsigned char* iv, unsigned char* dest, const unsigned char* 
      * In this example we are using 256 bit AES (i.e. a 256 bit key). The
      * IV size for *most* modes is the same as the block size. For AES this
      * is 128 bits */
-    if (1 != EVP_EncryptInit_ex(ctx, get_cipher(), NULL, KEY, iv)) handleErrors();
+    if (1 != EVP_EncryptInit_ex(ctx, get_cipher(), NULL, key, iv)) handleErrors();
 
     if (1 != EVP_EncryptUpdate(ctx, dest, &len, src, size)) handleErrors();
 
@@ -85,7 +131,7 @@ int openssl_encode(unsigned char* iv, unsigned char* dest, const unsigned char* 
 }
 
 
-int openssl_decode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size) {
+int openssl_decode(unsigned char* key, unsigned char* iv, unsigned char* dest, const unsigned char* src, int size) {
     EVP_CIPHER_CTX* ctx;    
 
     int len;
@@ -99,7 +145,7 @@ int openssl_decode(unsigned char* iv, unsigned char* dest, const unsigned char* 
      * IV size for *most* modes is the same as the block size. For AES this
      * is 128 bits */
 
-    if (1 != EVP_DecryptInit_ex(ctx, get_cipher(), NULL, KEY, iv)) handleErrors();
+    if (1 != EVP_DecryptInit_ex(ctx, get_cipher(), NULL, key, iv)) handleErrors();
 
     /* Provide the message to be decrypted, and obtain the plaintext output.
      * EVP_DecryptUpdate can be called multiple times if necessary

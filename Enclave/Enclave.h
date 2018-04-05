@@ -29,10 +29,13 @@ void exit(int status);
 int trusted_encode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size);
 int trusted_decode(unsigned char* key, int key_size, uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size);
 
-int trusted_init(unsigned char* key, int key_size);
+void trusted_init(unsigned char* client_key, int key_size, int iv_size, int tag_size, int ops);
+
+
 int trusted_compute_hash(uint8_t *data, size_t data_size, uint8_t *digest, size_t digest_size);
 int trusted_reencrypt(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size);
-int trusted_reencrypt_hash(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, uint8_t* src, size_t src_size);
+int trusted_reencrypt_hash_epoch(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, uint8_t* src, size_t src_size);
+int trusted_decrypt_hash_epoch(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, uint8_t* src, size_t src_size);
 
 #if defined(__cplusplus)
 }

@@ -1,5 +1,6 @@
 #include "App.h"
 
+#define EPOCH_OPS 25000
 #define KEY_SIZE 16 
 #define IV_SIZE  12
 #define MAC_SIZE 16
@@ -40,13 +41,36 @@ void randstring(unsigned char *dest, size_t length) {
     free(randomString);
 }
 
+/* if the enclave is lost, release its resources, and bring the enclave back up. */
+
+void recreateEnclave() {
+    /* if the enclave is lost, release its resources, and bring the enclave back up. */
+    if (SGX_SUCCESS != sgxDestroyEnclave(eid)) exit(EXIT_FAILURE);
+    if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
+    trusted_init(eid, CLIENT_KEY, KEY_SIZE, IV_SIZE, MAC_SIZE, EPOCH_OPS);
+    printf("[ENCLAVE_LOST] New enclave id = %d\n", (int) eid);    
+}
+
+/* TEST0: Compute hash */
+double func_test0(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
+    int res;
+    clock_t enclave_startTime, enclave_endTime;
+    
+    enclave_startTime = clock();
+    while (trusted_compute_hash(eid, &res, str, str_len, hash, HASH_LEN) == SGX_ERROR_ENCLAVE_LOST) 
+        recreateEnclave();    
+    enclave_endTime = clock();
+
+    return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
+}
+
 /* TEST1: Compute hash and reencrypt data */
 double func_test1(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     int res;
     clock_t enclave_startTime, enclave_endTime;
     
-    enclave_startTime = clock();
-    while (trusted_reencrypt_hash(eid, &res, dest, dest_len, hash, HASH_LEN, str, str_len) == SGX_ERROR_ENCLAVE_LOST)
+    enclave_startTime = clock();    
+    while (trusted_reencrypt_hash_epoch(eid, &res, dest, dest_len, hash, HASH_LEN, str, str_len) == SGX_ERROR_ENCLAVE_LOST)
         recreateEnclave();
     enclave_endTime = clock();
     
@@ -59,20 +83,20 @@ double func_test2(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, 
     clock_t enclave_startTime, enclave_endTime;
     
     enclave_startTime = clock();
-    while (trusted_reencrypt(eid, &res, dest, dest_len, str, str_len) == SGX_ERROR_ENCLAVE_LOST)
+    while (trusted_reencrypt(eid, &res, dest, dest_len, str, str_len) == SGX_ERROR_ENCLAVE_LOST)    
         recreateEnclave();
     enclave_endTime = clock();
     
     return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
 
-/* TEST3: Compute hash */
+/* TEST3: decrypt data and compute hash */
 double func_test3(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     int res;
     clock_t enclave_startTime, enclave_endTime;
     
     enclave_startTime = clock();
-    while (trusted_compute_hash(eid, &res, str, str_len, hash, HASH_LEN) == SGX_ERROR_ENCLAVE_LOST) 
+    while (trusted_decrypt_hash_epoch(eid, &res, dest, dest_len, hash, HASH_LEN, str, str_len) == SGX_ERROR_ENCLAVE_LOST) 
         recreateEnclave();    
     enclave_endTime = clock();
 
@@ -155,7 +179,7 @@ void usage(void){
 
 int main(int argc, char const *argv[]) {
 
-    int rc, res, test=3, ciphertext_size;
+    int rc, test=3, ciphertext_size;
     size_t block_size=128;
     unsigned int time_to_run=0;
     uint64_t n_ops=0;
@@ -219,6 +243,7 @@ int main(int argc, char const *argv[]) {
     // create enclave
     eid = 0;
     if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
+    trusted_init(eid, CLIENT_KEY, KEY_SIZE, IV_SIZE, MAC_SIZE, EPOCH_OPS);
 
     // Encrypt random string
     trusted_encode(eid, &ciphertext_size, CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
@@ -231,20 +256,23 @@ int main(int argc, char const *argv[]) {
 
 
     switch(test) {
-        case 1: 
-            trusted_init(eid, &res, CLIENT_KEY, KEY_SIZE);
+        case 0: 
+            if (n_ops > 0) run_test_ops(func_test0, dest, ciphertext_size, randomstr, block_size, n_ops);
+            else run_test_time(func_test0, dest, ciphertext_size, randomstr, block_size, time_to_run);
+            break;
+        case 1:             
             if (n_ops > 0) run_test_ops(func_test1, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test1, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
         case 2:
-            trusted_init(eid, &res, CLIENT_KEY, KEY_SIZE);
             if (n_ops > 0) run_test_ops(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
-        case 3:
-            if (n_ops > 0) run_test_ops(func_test3, dest, ciphertext_size, randomstr, block_size, n_ops);
-            else run_test_time(func_test3, dest, ciphertext_size, randomstr, block_size, time_to_run);
+        case 3:         
+            if (n_ops > 0) run_test_ops(func_test3, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
+            else run_test_time(func_test3, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
+            
     }
 
     // destroy enclave

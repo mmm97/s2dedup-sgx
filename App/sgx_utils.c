@@ -27,179 +27,172 @@ int sgxDestroyEnclave() {
 	return ret;
 }
 
-/* if the enclave is lost, release its resources, and bring the enclave back up. */
-void recreateEnclave() {
-    if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
-    if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
-    printf("[ENCLAVE_LOST] New enclave id: %d\n", (int) eid);    
-}
-
 void print_sgx_error_message(sgx_status_t err) {
     switch(err) {
         case SGX_ERROR_INVALID_PARAMETER:             
-            printf("[%d] SGX_ERROR_INVALID_PARAMETER\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_PARAMETER\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_CPUSVN: 
-            printf("[%d] SGX_ERROR_INVALID_CPUSVN\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_CPUSVN\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_ISVSVN: 
-            printf("[%d] SGX_ERROR_INVALID_ISVSVN\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_ISVSVN\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MAC_MISMATCH: 
-            printf("[%d] SGX_ERROR_MAC_MISMATCH\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MAC_MISMATCH\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_OUT_OF_MEMORY: 
-            printf("[%d] SGX_ERROR_OUT_OF_MEMORY\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_OUT_OF_MEMORY\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_UNEXPECTED: 
-            printf("[%d] SGX_ERROR_UNEXPECTED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_UNEXPECTED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_ENCLAVE_LOST:
-            printf("[%d] SGX_ERROR_ENCLAVE_LOST\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_ENCLAVE_LOST\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_STATE:
-            printf("[%d] SGX_ERROR_INVALID_STATE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_STATE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_FUNCTION:
-            printf("[%d] SGX_ERROR_INVALID_FUNCTION\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_FUNCTION\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_OUT_OF_TCS:
-            printf("[%d] SGX_ERROR_OUT_OF_TCS\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_OUT_OF_TCS\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_ENCLAVE_CRASHED:
-            printf("[%d] SGX_ERROR_ENCLAVE_CRASHED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_ENCLAVE_CRASHED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_ECALL_NOT_ALLOWED:
-            printf("[%d] SGX_ERROR_ECALL_NOT_ALLOWED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_ECALL_NOT_ALLOWED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_OCALL_NOT_ALLOWED:
-            printf("[%d] SGX_ERROR_OCALL_NOT_ALLOWED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_OCALL_NOT_ALLOWED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_STACK_OVERRUN:
-            printf("[%d] SGX_ERROR_STACK_OVERRUN\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_STACK_OVERRUN\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_UNDEFINED_SYMBOL:
-            printf("[%d] SGX_ERROR_UNDEFINED_SYMBOL\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_UNDEFINED_SYMBOL\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_ENCLAVE:
-            printf("[%d] SGX_ERROR_INVALID_ENCLAVE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_ENCLAVE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_ENCLAVE_ID:
-            printf("[%d] SGX_ERROR_INVALID_ENCLAVE_ID\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_ENCLAVE_ID\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_SIGNATURE:
-            printf("[%d] SGX_ERROR_INVALID_SIGNATURE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_SIGNATURE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_NDEBUG_ENCLAVE:
-            printf("[%d] SGX_ERROR_NDEBUG_ENCLAVE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_NDEBUG_ENCLAVE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_OUT_OF_EPC:
-            printf("[%d] SGX_ERROR_OUT_OF_EPC\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_OUT_OF_EPC\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_NO_DEVICE:
-            printf("[%d] SGX_ERROR_NO_DEVICE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_NO_DEVICE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MEMORY_MAP_CONFLICT:
-            printf("[%d] SGX_ERROR_MEMORY_MAP_CONFLICT\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MEMORY_MAP_CONFLICT\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_METADATA:
-            printf("[%d] SGX_ERROR_INVALID_METADATA\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_METADATA\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_DEVICE_BUSY:
-            printf("[%d] SGX_ERROR_DEVICE_BUSY\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_DEVICE_BUSY\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_VERSION:
-            printf("[%d] SGX_ERROR_INVALID_VERSION\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_VERSION\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MODE_INCOMPATIBLE:
-            printf("[%d] SGX_ERROR_MODE_INCOMPATIBLE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MODE_INCOMPATIBLE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_ENCLAVE_FILE_ACCESS:
-            printf("[%d] SGX_ERROR_ENCLAVE_FILE_ACCESS\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_ENCLAVE_FILE_ACCESS\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_MISC:
-            printf("[%d] SGX_ERROR_INVALID_MISC\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_MISC\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_ATTRIBUTE:
-            printf("[%d] SGX_ERROR_INVALID_ATTRIBUTE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_ATTRIBUTE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_INVALID_KEYNAME:
-            printf("[%d] SGX_ERROR_INVALID_KEYNAME\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_INVALID_KEYNAME\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_SERVICE_UNAVAILABLE:
-            printf("[%d] SGX_ERROR_SERVICE_UNAVAILABLE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_SERVICE_UNAVAILABLE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_SERVICE_TIMEOUT:
-            printf("[%d] SGX_ERROR_SERVICE_TIMEOUT\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_SERVICE_TIMEOUT\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_AE_INVALID_EPIDBLOB:
-            printf("[%d] SGX_ERROR_AE_INVALID_EPIDBLOB\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_AE_INVALID_EPIDBLOB\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_SERVICE_INVALID_PRIVILEGE:
-            printf("[%d] SGX_ERROR_SERVICE_INVALID_PRIVILEGE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_SERVICE_INVALID_PRIVILEGE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_EPID_MEMBER_REVOKED:
-            printf("[%d] SGX_ERROR_EPID_MEMBER_REVOKED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_EPID_MEMBER_REVOKED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_UPDATE_NEEDED:
-            printf("[%d] SGX_ERROR_UPDATE_NEEDED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_UPDATE_NEEDED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_NETWORK_FAILURE:
-            printf("[%d] SGX_ERROR_NETWORK_FAILURE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_NETWORK_FAILURE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_AE_SESSION_INVALID:
-            printf("[%d] SGX_ERROR_AE_SESSION_INVALID\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_AE_SESSION_INVALID\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_BUSY:
-            printf("[%d] SGX_ERROR_BUSY\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_BUSY\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MC_NOT_FOUND:
-            printf("[%d] SGX_ERROR_MC_NOT_FOUND\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MC_NOT_FOUND\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MC_NO_ACCESS_RIGHT:
-            printf("[%d] SGX_ERROR_MC_NO_ACCESS_RIGHT\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MC_NO_ACCESS_RIGHT\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MC_USED_UP:
-            printf("[%d] SGX_ERROR_MC_USED_UP\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MC_USED_UP\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_MC_OVER_QUOTA:
-            printf("[%d] SGX_ERROR_MC_OVER_QUOTA\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_MC_OVER_QUOTA\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_KDF_MISMATCH:
-            printf("[%d] SGX_ERROR_KDF_MISMATCH\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_KDF_MISMATCH\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_UNRECOGNIZED_PLATFORM:
-            printf("[%d] SGX_ERROR_UNRECOGNIZED_PLATFORM\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_UNRECOGNIZED_PLATFORM\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_NO_PRIVILEGE:
-            printf("[%d] SGX_ERROR_NO_PRIVILEGE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_NO_PRIVILEGE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_BAD_STATUS:
-            printf("[%d] SGX_ERROR_FILE_BAD_STATUS\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_BAD_STATUS\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_NO_KEY_ID:
-            printf("[%d] SGX_ERROR_FILE_NO_KEY_ID\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_NO_KEY_ID\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_NAME_MISMATCH:
-            printf("[%d] SGX_ERROR_FILE_NAME_MISMATCH\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_NAME_MISMATCH\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_NOT_SGX_FILE:
-            printf("[%d] SGX_ERROR_FILE_NOT_SGX_FILE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_NOT_SGX_FILE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_CANT_OPEN_RECOVERY_FILE:
-            printf("[%d] SGX_ERROR_FILE_CANT_OPEN_RECOVERY_FILE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_CANT_OPEN_RECOVERY_FILE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_CANT_WRITE_RECOVERY_FILE:
-            printf("[%d] SGX_ERROR_FILE_CANT_WRITE_RECOVERY_FILE\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_CANT_WRITE_RECOVERY_FILE\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_RECOVERY_NEEDED:
-            printf("[%d] SGX_ERROR_FILE_RECOVERY_NEEDED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_RECOVERY_NEEDED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_FLUSH_FAILED:
-            printf("[%d] SGX_ERROR_FILE_FLUSH_FAILED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_FLUSH_FAILED\n", (int)eid, (int) err);
             break;
         case SGX_ERROR_FILE_CLOSE_FAILED:
-            printf("[%d] SGX_ERROR_FILE_CLOSE_FAILED\n", (int) err);
+            printf("[%d][%d] SGX_ERROR_FILE_CLOSE_FAILED\n", (int)eid, (int) err);
             break;
         case SGX_SUCCESS:
             break;
@@ -219,16 +212,22 @@ void uprint(const char *str) {
     // fflush(stdout);
 }
 
-void usgx_exit(int err) {
-    printf("usgx_exit: ");
+void usgx_exit_error(const char *error_msg) {
+    printf("usgx_exit: %s\n", error_msg);
+    exit(EXIT_FAILURE);
+}
+
+void usgx_exit(const char *func_name, int err) {
+    printf("usgx_exit: %s\n", func_name);
     print_sgx_error_message((sgx_status_t) err);
     exit(EXIT_FAILURE);
 }
 
+
 uint32_t save_sdata(uint8_t *sdata, uint32_t sdata_len) {
     // printf("<U> SAVE KEY!!\n");
 
-    char filename[32] = "/tmp/ekey.priv";
+    char filename[32] = "/tmp/micro_ekey.priv";
     FILE *fp;
 
     fp = fopen(filename, "ab");
@@ -245,7 +244,7 @@ uint32_t save_sdata(uint8_t *sdata, uint32_t sdata_len) {
 uint32_t load_sdata(uint8_t *sdata, uint32_t sdata_len, uint32_t *sdata_len_out) {
     // printf("<U> LOAD KEY!!\n");
 
-    char filename[32] = "/tmp/ekey.priv";
+    char filename[32] = "/tmp/micro_ekey.priv";
     FILE *fp;
     uint8_t *buffer;
     size_t nread = 0; 
