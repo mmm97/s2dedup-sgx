@@ -4,7 +4,7 @@
 
 #include "auth_encryption.h"
 
-unsigned char* KEY;
+// unsigned char* KEY;
 int KEY_SIZE;
 int OPERATION_MODE;
 int IV_SIZE;
@@ -93,18 +93,18 @@ int define_tag(int mode) {
     }
 }
 
-int auth_init(char* key, int key_size, int iv_size, int tag_size, int operation_mode) {
-    if (key == NULL) {
-        // ERROR_MSG("(symmetric.c) - init's key argument is NULL");
-        return 1;
-    }
+int auth_init(int key_size, int iv_size, int tag_size, int operation_mode) {
+    //  if (key == NULL) {
+    //     // ERROR_MSG("(symmetric.c) - init's key argument is NULL");
+    //     return 1;
+    // }
 
     // ERR_load_crypto_strings();
     // OpenSSL_add_all_algorithms();
     // OPENSSL_config(NULL);
 
     KEY_SIZE = key_size;
-    KEY = (unsigned char*) key;
+    // KEY = (unsigned char*) key;
     OPERATION_MODE = operation_mode;
     IV_SIZE = iv_size;
     TAG_SIZE = tag_size;
@@ -114,7 +114,7 @@ int auth_init(char* key, int key_size, int iv_size, int tag_size, int operation_
     return 0;
 }
 
-int auth_encode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag) {
+int auth_encode(unsigned char* key, unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag) {
     EVP_CIPHER_CTX *ctx;
     int len;
     int ciphertext_len;
@@ -129,7 +129,7 @@ int auth_encode(unsigned char* iv, unsigned char* dest, const unsigned char* src
     if(1 != EVP_CIPHER_CTX_ctrl(ctx, define_ivlen(), IV_SIZE, NULL)) auth_handleErrors();
 
     /* Initialise key and IV */
-    if(1 != EVP_EncryptInit_ex(ctx, NULL, NULL, KEY, iv)) auth_handleErrors();
+    if(1 != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv)) auth_handleErrors();
 
     /* Provide any AAD data. This can be called zero or more times as
      * required
@@ -157,7 +157,7 @@ int auth_encode(unsigned char* iv, unsigned char* dest, const unsigned char* src
     return ciphertext_len;
 }
 
-int auth_decode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag) {
+int auth_decode(unsigned char* key, unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag) {
     EVP_CIPHER_CTX *ctx;
     int len;
     int plaintext_len;
@@ -173,7 +173,7 @@ int auth_decode(unsigned char* iv, unsigned char* dest, const unsigned char* src
     if(!EVP_CIPHER_CTX_ctrl(ctx, define_ivlen(), IV_SIZE, NULL))	auth_handleErrors();
 
     /* Initialise key and IV */
-    if(!EVP_DecryptInit_ex(ctx, NULL, NULL, KEY, iv)) auth_handleErrors();
+    if(!EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv)) auth_handleErrors();
 
     /* Provide any AAD data. This can be called zero or more times as
      * required

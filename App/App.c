@@ -1,11 +1,12 @@
 #include "App.h"
 
-#define KEY_SIZE 16 
+#define EPOCH_OPS 25000
+#define KEY_SIZE 32 
 #define IV_SIZE  12
 #define MAC_SIZE 16
 #define HASH_LEN 32
 
-unsigned char CLIENT_KEY[KEY_SIZE]  = "C53C0E2F1B0B19A";
+unsigned char CLIENT_KEY[KEY_SIZE]  = "C53C0E2F1B0B19AC53C0E2F1B0B19AA";
 
 zlog_category_t *c;
 
@@ -40,16 +41,29 @@ void randstring(unsigned char *dest, size_t length) {
     free(randomString);
 }
 
+/* TEST0: Compute hash */
+double func_test0(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
+    clock_t enclave_startTime, enclave_endTime;
+    
+    enclave_startTime = clock();
+    compute_hash(str, str_len, hash, HASH_LEN);
+    enclave_endTime = clock();
+
+    return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
+}
+
+
 /* TEST1: Compute hash and reencrypt data */
 double func_test1(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     clock_t enclave_startTime, enclave_endTime;
     
     enclave_startTime = clock();
-    reencrypt_hash(dest, dest_len, hash, HASH_LEN, str, str_len);
+    reencrypt_hash_epoch(dest, dest_len, hash, HASH_LEN, str, str_len);
     enclave_endTime = clock();
     
     return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
+
 
 /* TEST2: Reencrypt data */
 double func_test2(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
@@ -62,12 +76,12 @@ double func_test2(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, 
     return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
 
-/* TEST3: Compute hash */
+/* TEST3: decrypt data and compute hash */
 double func_test3(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     clock_t enclave_startTime, enclave_endTime;
     
     enclave_startTime = clock();
-    compute_hash(str, str_len, hash, HASH_LEN);
+    decrypt_hash_epoch(dest, dest_len, hash, HASH_LEN, str, str_len);
     enclave_endTime = clock();
 
     return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
@@ -92,7 +106,7 @@ void run_test_ops(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8_
     printf("\n\nTotal ops:  %lu\n", ops);
     printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
     printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
-    printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
+    printf("Total time: %f \n", total_enclave_time_elapsed);           
 }
 
 void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8_t*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t time_to_run) {
@@ -104,7 +118,7 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
 
     unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
 
-    count_down_time_in_secs = time_to_run * 1;
+    count_down_time_in_secs = time_to_run * 60;
     x_startTime=clock();  // start clock
 
     time_left=count_down_time_in_secs-x_seconds;   // update timer
@@ -136,20 +150,20 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
     printf("\n\nTotal ops:  %lu\n", ops);
     printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
     printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
-    printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
+    printf("Total time: %f \n", total_enclave_time_elapsed);           
 }
 
 void usage(void){
 	printf(" Help:\n\n");
     printf(" -r<value> Number of test (1:hash+encrypt, 2:encrypt, 3:hash)\n");
-	printf(" -b<value> block size (default=128)\n");
+	printf(" -b<value> block size (KB) (default=1K)\n");
 	printf(" -t<value> or -n<value>\t(Benchmark duration (-t) in Minutes or number of operations to execute (-n))\n");
 	exit (8);
 }
 
 int main(int argc, char const *argv[]) {
 
-    int rc, test=3, ciphertext_size;
+    int rc, test=3, ciphertext_size, integrity;
     size_t block_size=128;
     unsigned int time_to_run=0;
     uint64_t n_ops=0;
@@ -173,7 +187,7 @@ int main(int argc, char const *argv[]) {
 				test=atoi(&argv[1][2]);
 				break;
 			case 'b':
-				block_size=atoi(&argv[1][2]);
+				block_size=atoi(&argv[1][2])*1024;
 				break;
 			case 't':
                 if (n_ops != 0) { printf("Cannot use both -t and -n\n\n"); usage(); }
@@ -209,48 +223,45 @@ int main(int argc, char const *argv[]) {
     // Generate a random string with size = block_size
     randstring(randomstr, block_size);
 
-    unsigned char*digest=(unsigned char*) malloc(sizeof(unsigned char)*HASH_LEN);
-    compute_hash(randomstr, block_size, digest, HASH_LEN);
-    print_digest(digest, HASH_LEN);
+    init_u_openssl(CLIENT_KEY, KEY_SIZE, IV_SIZE, MAC_SIZE, EPOCH_OPS);
 
     // Encrypt random string
     ciphertext_size = encode(CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
-
-    printf("IV: %s\n", &ciphertext[ciphertext_size-MAC_SIZE-IV_SIZE]);
 
     if (n_ops > 0) printf("OPENSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else printf("OPENSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
 
     if (n_ops > 0) zlog_info(c, "OPENSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else zlog_info(c, "OPENSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
-
-
+    
     switch(test) {
-        case 1: 
-            init_u_openssl(CLIENT_KEY, KEY_SIZE);
+        case 0: 
+            if (n_ops > 0) run_test_ops(func_test0, dest, ciphertext_size, randomstr, block_size, n_ops);
+            else run_test_time(func_test0, dest, ciphertext_size, randomstr, block_size, time_to_run);
+            break;
+        case 1:             
             if (n_ops > 0) run_test_ops(func_test1, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test1, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
         case 2:
-            init_u_openssl(CLIENT_KEY, KEY_SIZE);
             if (n_ops > 0) run_test_ops(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
-        case 3:
-            if (n_ops > 0) run_test_ops(func_test3, dest, ciphertext_size, randomstr, block_size, n_ops);
-            else run_test_time(func_test3, dest, ciphertext_size, randomstr, block_size, time_to_run);
+        case 3:         
+            if (n_ops > 0) run_test_ops(func_test3, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
+            else run_test_time(func_test3, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
             break;
+            
     }
 
-    int plaintext_size;
-    unsigned char *plaintext = (unsigned char*) malloc (sizeof(unsigned char) * block_size);
-    plaintext_size = decode(CLIENT_KEY, KEY_SIZE, plaintext, block_size, dest, ciphertext_size);
+    // Check integrity
+    if (test == 1 || test == 2) {
+        integrity = check_integrity(randomstr, block_size, dest, ciphertext_size);
 
-    if (memcmp(randomstr, plaintext, block_size)!=0)   {
-        printf("randomstring != plaintext\n");
-        printf("randomstr: %s\n", randomstr);
-        printf("plaintext: %s\n", plaintext);
+        if (integrity == EXIT_SUCCESS) printf("Integrity checked!\n");
+        else printf("Integrity test failed!\n");
     }
+
     free(randomstr);
     free(ciphertext);
     free(dest);

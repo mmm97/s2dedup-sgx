@@ -17,11 +17,11 @@
 #define CCM 2
 
 
-int auth_init(char* key, int key_size, int iv_size, int tag_size, int operation_mode);
+int auth_init(int key_size, int iv_size, int tag_size, int operation_mode);
 
-int auth_encode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag);
+int auth_encode(unsigned char* key, unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag);
 
-int auth_decode(unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag);
+int auth_decode(unsigned char* key, unsigned char* iv, unsigned char* dest, const unsigned char* src, int size, unsigned char* tag);
 
 int auth_clean();
 
