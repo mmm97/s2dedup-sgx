@@ -1,12 +1,12 @@
 #include "App.h"
 
 #define EPOCH_OPS 25000
-#define KEY_SIZE 16 
+#define KEY_SIZE 32 
 #define IV_SIZE  12
 #define MAC_SIZE 16
 #define HASH_LEN 32
 
-unsigned char CLIENT_KEY[KEY_SIZE]  = "C53C0E2F1B0B19A";
+unsigned char CLIENT_KEY[KEY_SIZE]  = "C53C0E2F1B0B19AC53C0E2F1B0B19AA";
 
 zlog_category_t *c;
 
@@ -252,11 +252,11 @@ int main(int argc, char const *argv[]) {
     err = trusted_encode(eid, &ciphertext_size, CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
     if (err != SGX_SUCCESS) print_sgx_error_message(err);
 
-    if (n_ops > 0) printf("SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
-    else printf("SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
+    if (n_ops > 0) printf("SGXSDK | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
+    else printf("SGXSDK | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
 
-    if (n_ops > 0) zlog_info(c, "SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
-    else zlog_info(c, "SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
+    if (n_ops > 0) zlog_info(c, "SGXSDK | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
+    else zlog_info(c, "SGXSDK | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
     
     switch(test) {
         case 0: 
@@ -279,11 +279,13 @@ int main(int argc, char const *argv[]) {
     }
 
     // Check integrity
-    err = check_integrity(eid, &integrity, randomstr, block_size, dest, ciphertext_size);
-    if (err != SGX_SUCCESS) print_sgx_error_message(err);
+    if (test == 1 || test == 2) {
+        err = check_integrity(eid, &integrity, randomstr, block_size, dest, ciphertext_size);
+        if (err != SGX_SUCCESS) print_sgx_error_message(err);
 
-    if (integrity == EXIT_SUCCESS) printf("Integrity checked!\n");
-    else printf("Integrity test failed!\n");
+        if (integrity == EXIT_SUCCESS) printf("Integrity checked!\n");
+        else printf("Integrity test failed!\n");
+    }
 
     // Destroy enclave
     err = sgxDestroyEnclave();

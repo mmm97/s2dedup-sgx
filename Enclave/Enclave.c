@@ -22,7 +22,7 @@ unsigned char *SERVER_KEY;
 
 int MAX_OPS;
 int N_OPS;
-int epoch_rnd_size = 16;
+int epoch_rnd_size = 32;
 unsigned char *epoch_rnd;
 
 /* 
@@ -132,7 +132,7 @@ void getEpochKey(unsigned char *msg, int msg_size, unsigned char *epoch_key) {
     } 
     N_OPS++;
     unsigned int epoch_si=0;
-    HMAC(EVP_md5(), epoch_rnd, epoch_rnd_size, msg, msg_size, epoch_key, &epoch_si);
+    HMAC(EVP_sha256(), epoch_rnd, epoch_rnd_size, msg, msg_size, epoch_key, &epoch_si);
 }
 
 void trusted_init(unsigned char* client_key, int key_size, int iv_size, int tag_size, int ops) {
