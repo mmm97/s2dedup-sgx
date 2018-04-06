@@ -252,11 +252,11 @@ int main(int argc, char const *argv[]) {
     err = trusted_encode(eid, &ciphertext_size, CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
     if (err != SGX_SUCCESS) print_sgx_error_message(err);
 
-    if (n_ops > 0) printf("SGXSDK | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
-    else printf("SGXSDK | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
+    if (n_ops > 0) printf("SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
+    else printf("SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
 
-    if (n_ops > 0) zlog_info(c, "SGXSDK | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
-    else zlog_info(c, "SGXSDK | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
+    if (n_ops > 0) zlog_info(c, "SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
+    else zlog_info(c, "SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
     
     switch(test) {
         case 0: 
