@@ -125,7 +125,7 @@ uint32_t getKey() {
 void getEpochKey(unsigned char *msg, int msg_size, unsigned char *epoch_key) {    
     sgx_status_t err;
     if (N_OPS == 0 || N_OPS >= MAX_OPS) {
-        printf("<T> new epoch!! %d\n", N_OPS);
+        // printf("<T> new epoch!! %d\n", N_OPS);
         err = sgx_read_rand(epoch_rnd, epoch_rnd_size);
         if (err != SGX_SUCCESS) usgx_exit("sgx_read_rand", err);
         N_OPS = 0;
@@ -370,4 +370,24 @@ int trusted_decrypt_hash_epoch(uint8_t *dest, size_t dest_size, uint8_t *digest,
     free(det_ciphertext);
 
     return src_size;
+}
+
+int check_integrity(uint8_t* plaintext, size_t plaintext_size, uint8_t *ciphertext, size_t ciphertext_size) {
+
+    unsigned char *aux_plaintext;
+    int aux_plaintext_size, integrity = EXIT_FAILURE;
+
+    // *****************************
+    // Decode data with server key
+    aux_plaintext_size = ciphertext_size - IV_SIZE - MAC_SIZE;
+    aux_plaintext = (unsigned char*) malloc(sizeof(unsigned char) * aux_plaintext_size);
+    aux_plaintext_size = decode(SERVER_KEY, &ciphertext[aux_plaintext_size], &ciphertext[aux_plaintext_size+IV_SIZE], aux_plaintext, ciphertext, aux_plaintext_size);
+    
+    // *****************************
+    // Compare aux_plaintext with plaintext
+    if (aux_plaintext_size == plaintext_size && (memcmp(plaintext, aux_plaintext, plaintext_size) == 0))
+        integrity = EXIT_SUCCESS;
+
+    free(aux_plaintext);
+    return integrity;
 }

@@ -172,14 +172,15 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
 void usage(void){
 	printf(" Help:\n\n");
     printf(" -r<value> Number of test (1:hash+encrypt, 2:encrypt, 3:hash)\n");
-	printf(" -b<value> block size (default=128)\n");
+	printf(" -b<value> block size (KB) (default=1K)\n");
 	printf(" -t<value> or -n<value>\t(Benchmark duration (-t) in Minutes or number of operations to execute (-n))\n");
 	exit (8);
 }
 
 int main(int argc, char const *argv[]) {
 
-    int rc, test=3, ciphertext_size;
+    sgx_status_t err;
+    int rc, test=3, ciphertext_size, integrity;
     size_t block_size=128;
     unsigned int time_to_run=0;
     uint64_t n_ops=0;
@@ -203,7 +204,7 @@ int main(int argc, char const *argv[]) {
 				test=atoi(&argv[1][2]);
 				break;
 			case 'b':
-				block_size=atoi(&argv[1][2]);
+				block_size=atoi(&argv[1][2])*1024;
 				break;
 			case 't':
                 if (n_ops != 0) { printf("Cannot use both -t and -n\n\n"); usage(); }
@@ -239,22 +240,24 @@ int main(int argc, char const *argv[]) {
     // Generate a random string with size = block_size
     randstring(randomstr, block_size);
 
-    // printf("plaintext: %s\n", randomstr);
-    // create enclave
+    // Create enclave
     eid = 0;
-    if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);    
-    trusted_init(eid, CLIENT_KEY, KEY_SIZE, IV_SIZE, MAC_SIZE, EPOCH_OPS);
+    err = sgxCreateEnclave();
+    if (err != SGX_SUCCESS) print_sgx_error_message(err);
+    
+    err = trusted_init(eid, CLIENT_KEY, KEY_SIZE, IV_SIZE, MAC_SIZE, EPOCH_OPS);
+    if (err != SGX_SUCCESS) print_sgx_error_message(err);
 
     // Encrypt random string
-    trusted_encode(eid, &ciphertext_size, CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
+    err = trusted_encode(eid, &ciphertext_size, CLIENT_KEY, KEY_SIZE, ciphertext, ciphertext_size, randomstr, block_size);
+    if (err != SGX_SUCCESS) print_sgx_error_message(err);
 
     if (n_ops > 0) printf("SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else printf("SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
 
     if (n_ops > 0) zlog_info(c, "SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else zlog_info(c, "SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
-
-
+    
     switch(test) {
         case 0: 
             if (n_ops > 0) run_test_ops(func_test0, dest, ciphertext_size, randomstr, block_size, n_ops);
@@ -275,8 +278,16 @@ int main(int argc, char const *argv[]) {
             
     }
 
-    // destroy enclave
-    if (SGX_SUCCESS != sgxDestroyEnclave()) exit(EXIT_FAILURE);
+    // Check integrity
+    err = check_integrity(eid, &integrity, randomstr, block_size, dest, ciphertext_size);
+    if (err != SGX_SUCCESS) print_sgx_error_message(err);
+
+    if (integrity == EXIT_SUCCESS) printf("Integrity checked!\n");
+    else printf("Integrity test failed!\n");
+
+    // Destroy enclave
+    err = sgxDestroyEnclave();
+    if (err != SGX_SUCCESS) print_sgx_error_message(err);
 
     free(randomstr);
     free(ciphertext);

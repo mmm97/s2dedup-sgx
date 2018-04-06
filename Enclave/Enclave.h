@@ -37,6 +37,8 @@ int trusted_reencrypt(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_
 int trusted_reencrypt_hash_epoch(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, uint8_t* src, size_t src_size);
 int trusted_decrypt_hash_epoch(uint8_t *dest, size_t dest_size, uint8_t *digest, size_t digest_size, uint8_t* src, size_t src_size);
 
+int check_integrity(uint8_t* plaintext, size_t plaintext_size, uint8_t *ciphertext, size_t ciphertext_size);
+
 #if defined(__cplusplus)
 }
 #endif

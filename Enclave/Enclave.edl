@@ -33,5 +33,7 @@ enclave {
         public int trusted_reencrypt_hash_epoch([out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=src_size] uint8_t* src, size_t src_size);
         public int trusted_decrypt_hash_epoch([out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=src_size] uint8_t* src, size_t src_size);
         
+
+        public int check_integrity([in, size=plaintext_size]uint8_t* plaintext, size_t plaintext_size, [in, size=ciphertext_size] uint8_t *ciphertext, size_t ciphertext_size);
     };
 };
