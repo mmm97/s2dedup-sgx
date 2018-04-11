@@ -2,7 +2,7 @@
 
 /* SGX Function for enclave creation */
 int sgxCreateEnclave() {
-    char *enclavefilepath = (char*) "/home/gsd/MicroBenchmarks/SGX_MicroBenchmark/Enclave/Enclave.signed.so"; 
+    char *enclavefilepath = (char*) "Enclave/Enclave.signed.so"; 
 	sgx_launch_token_t token = {0};
 	int updated = 0;
 	sgx_status_t ret;

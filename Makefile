@@ -41,10 +41,10 @@ endif
 endif
 
 # Added to build with SgxSSL libraries
-OPENSSL_PACKAGE := /home/gsd/Intel_SGX_SSL/intel-sgx-ssl/Linux/package
+OPENSSL_PACKAGE := /opt/intel-sgx-ssl/Linux/package
 SGXSSL_Library_Name := sgx_tsgxssl
 OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
-TSETJMP_LIB := -lsgx_tsetjmp
+#TSETJMP_LIB := -lsgx_tsetjmp
 
 ifdef DEBUG
         SGX_COMMON_CFLAGS += -O0 -g
