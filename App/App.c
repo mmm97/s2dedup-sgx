@@ -118,7 +118,7 @@ void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8
 
     unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
 
-    count_down_time_in_secs = time_to_run * 60;
+    count_down_time_in_secs = time_to_run * 5;
     x_startTime=clock();  // start clock
 
     time_left=count_down_time_in_secs-x_seconds;   // update timer
