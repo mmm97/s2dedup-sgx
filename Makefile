@@ -11,6 +11,7 @@ all: microbenchmark
 
 microbenchmark: $(APP_DIR)/App.o $(APP_DIR)/openssl_impl.o $(DRIVER_OPENSSL_DIR)/symmetric.o $(DRIVER_OPENSSL_DIR)/auth_encryption.o
 	gcc $^ -o $@ $(Link_Flags)
+	mkdir -p results
 
 $(APP_DIR)/%.o: $(APP_DIR)/%.c
 	gcc $(CFLAGS) -c $<  -o $@ 
