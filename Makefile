@@ -40,7 +40,7 @@ endif
 endif
 
 # Added to build with SgxSSL libraries
-OPENSSL_PACKAGE := /opt/intel-sgx-ssl/Linux/package
+OPENSSL_PACKAGE := $(HOME)/sgxssl/
 SGXSSL_Library_Name := sgx_tsgxssl
 OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
 #TSETJMP_LIB := -lsgx_tsetjmp
@@ -164,6 +164,7 @@ $(APP_DIR)/%.o: $(APP_DIR)/%.c $(APP_DIR)/%.h
 	@echo "CC   <=  $<"
 
 $(App_Name): $(APP_DIR)/Enclave_u.o $(App_objs)
+	mkdir -p results
 	@$(CC) $^ -o $@ $(App_Link_Flags)
 	@echo "LINK =>  $@"
 

@@ -22,18 +22,13 @@ enclave {
 
 
     trusted {
-        public int trusted_encode([in, size=key_size] unsigned char* key, int key_size, [out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
-        public int trusted_decode([in, size=key_size] unsigned char* key, int key_size, [out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
+        public int trusted_encode([out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
+        public int trusted_decode([out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
         
-        public void trusted_init([in, size=key_size] unsigned char* client_key, int key_size, int iv_size, int tag_size, int ops);    
+        public void trusted_init_sgx([in, size=key_size] unsigned char* client_key, int key_size, int iv_size, int mac_size, int operation_mode, int ops);    
+        public void trusted_clear_sgx();
 
-
-        public int trusted_compute_hash([in, size=data_size] uint8_t *data, size_t data_size, [out, size=digest_size] uint8_t *digest, size_t digest_size);
         public int trusted_reencrypt([out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
-        public int trusted_reencrypt_hash_epoch([out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=src_size] uint8_t* src, size_t src_size);
-        public int trusted_decrypt_hash_epoch([out, size=dest_size] uint8_t* dest, size_t dest_size, [out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=src_size] uint8_t* src, size_t src_size);
-        
-
-        public int check_integrity([in, size=plaintext_size]uint8_t* plaintext, size_t plaintext_size, [in, size=ciphertext_size] uint8_t *ciphertext, size_t ciphertext_size);
+        public int trusted_compute_hash([out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=data_size] uint8_t *data, size_t data_size);
     };
 };
