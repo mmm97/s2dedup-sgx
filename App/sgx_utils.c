@@ -7,24 +7,16 @@ int sgxCreateEnclave() {
 	int updated = 0;
 	sgx_status_t ret;
 	ret = sgx_create_enclave(enclavefilepath, SGX_DEBUG_FLAG, &token, &updated, &eid, NULL );
-    if ( SGX_SUCCESS != ret) {
-        printf("sgxCreateEnclave: cant create Enclave (error 0x%x)\n", ret );
-    } else {
-        // printf("sgxCreateEnclave: Enclave created. eid: %d status: %d\n", (int) eid, ret);
-    }
-	return ret;
+    if (SGX_SUCCESS != ret) printf("sgxCreateEnclave: cant create Enclave (error 0x%x)\n", ret );
+    return ret;
 }
 
 /* destroy SGX enclave */
 int sgxDestroyEnclave() {
 	sgx_status_t ret;
-	ret = sgx_destroy_enclave( eid );
-	if ( SGX_SUCCESS != ret ) {
-        printf("sgxDestroyEnclave: cant destroy Enclave (error 0x%x)\n", ret );
-    } else {
-        // printf("sgxDestroyEnclave: Enclave destroyed..\n");
-    }
-	return ret;
+    if ((ret = trusted_clear_sgx(eid)) != SGX_SUCCESS) printf("trustedClear: error 0x%x\n", ret);
+	if ((ret = sgx_destroy_enclave(eid)) != SGX_SUCCESS) printf("sgxDestroyEnclave: cant destroy Enclave (error 0x%x)\n", ret );
+    return ret;
 }
 
 void print_sgx_error_message(sgx_status_t err) {

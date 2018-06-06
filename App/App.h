@@ -6,3 +6,5 @@
 
 #include "sgx_utils.h"
 #include "zlog.h"
+
+#include "../Openssl/auth_encryption.h"

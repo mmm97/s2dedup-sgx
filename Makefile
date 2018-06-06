@@ -41,7 +41,7 @@ endif
 endif
 
 # Added to build with SgxSSL libraries
-OPENSSL_PACKAGE := /opt/intel-sgx-ssl/Linux/package
+OPENSSL_PACKAGE := $(HOME)/sgxssl/
 SGXSSL_Library_Name := sgx_tsgxssl
 OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
 #TSETJMP_LIB := -lsgx_tsetjmp
@@ -123,7 +123,7 @@ endif
 App_Include_Paths := -I$(DRIVER_OPENSSL_DIR) -I$(APP_DIR) -I$(SGX_SDK)/include 
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
-App_srcs := $(wildcard $(APP_DIR)/*.c)
+App_srcs := $(wildcard $(APP_DIR)/*.c) $(wildcard $(DRIVER_OPENSSL_DIR)/*.c)
 App_objs := $(App_srcs:.c=.o)
 
 # Three configuration modes - Debug, prerelease, release
@@ -170,6 +170,7 @@ $(DRIVER_OPENSSL_DIR)/%.o: $(DRIVER_OPENSSL_DIR)/%.c $(DRIVER_OPENSSL_DIR)/%.h
 	@echo "CC   <=  $<"
 
 $(App_Name): $(APP_DIR)/Enclave_u.o $(App_objs)
+	mkdir -p results
 	@$(CC) $^ -o $@ $(App_Link_Flags)
 	@echo "LINK =>  $@"
 
@@ -224,14 +225,14 @@ clean:
 	echo "$(INDENT)[RM]" $(OUTPUT_T_UNSIG) $(OUTPUT_T)
 	$(RM) $(OUTPUT_T_UNSIG) $(OUTPUT_T)
 	
-	echo "$(INDENT)[RM]" $(ENCLAVE_DIR)/Enclave.o $(ENCLAVE_DIR)/Enclave_t.o
-	$(RM) $(ENCLAVE_DIR)/Enclave.o $(ENCLAVE_DIR)/Enclave_t.o
+	echo "$(INDENT)[RM]" $(ENCLAVE_DIR)/*.o
+	$(RM) $(ENCLAVE_DIR)/*.o
 	
 	echo "$(INDENT)[RM]" $(ENCLAVE_DIR)/Enclave_t.c $(ENCLAVE_DIR)/Enclave_t.h
 	$(RM) $(ENCLAVE_DIR)/Enclave_t.c $(ENCLAVE_DIR)/Enclave_t.h
 	
-	echo "$(INDENT)[RM] $(APP_DIR)/App.o $(APP_DIR)/Enclave_u.o"
-	$(RM) $(APP_DIR)/App.o $(APP_DIR)/Enclave_u.o
+	echo "$(INDENT)[RM] $(APP_DIR)/*.o "
+	$(RM) $(APP_DIR)/*.o 
 
 	echo "$(INDENT)[RM] $(DRIVER_OPENSSL_DIR)/*.o"
 	$(RM) $(DRIVER_OPENSSL_DIR)/*.o
