@@ -12,8 +12,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "ippcp.h"
 
-#include <openssl/hmac.h>
+// #include <openssl/hmac.h>
 
 int trusted_encode(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size);
 int trusted_decode(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size);

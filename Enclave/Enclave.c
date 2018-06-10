@@ -84,7 +84,7 @@ void trusted_clear_sgx() {
 
 unsigned int compute_epoch_hash(unsigned char *msg, int msg_size, unsigned char *hash) {    
     sgx_status_t err;
-    unsigned int hash_size;
+    unsigned int hash_size=32;
 
     if (N_OPS == 0 || N_OPS >= MAX_OPS) {
         err = sgx_read_rand(EPOCH_KEY, EPOCH_KEY_SIZE);
@@ -93,7 +93,9 @@ unsigned int compute_epoch_hash(unsigned char *msg, int msg_size, unsigned char 
     } 
     N_OPS++;
 
-    HMAC(EVP_sha256(), EPOCH_KEY, EPOCH_KEY_SIZE, msg, msg_size, hash, &hash_size);   
+    // HMAC(EVP_sha256(), EPOCH_KEY, EPOCH_KEY_SIZE, msg, msg_size, hash, &hash_size);   
+    ippsHMAC_Message(msg, msg_size, EPOCH_KEY, EPOCH_KEY_SIZE, hash, hash_size, ippHashAlg_SHA256);
+
     return hash_size;
 }
 
@@ -212,7 +214,7 @@ int trusted_compute_hash(uint8_t *digest, size_t digest_size, uint8_t* src, size
     // *****************************
     // Compute hash    
     aux_digest_size = compute_epoch_hash(plaintext, plaintext_size, digest);    
-    if (aux_digest_size != digest_size) usgx_exit_error("<T> compute_hash error: wrong digest size %d", aux_digest_size);
+    if (aux_digest_size != digest_size) usgx_exit_error("<T> compute_hash error: wrong digest size", aux_digest_size);
 
     free(plaintext);
     return aux_digest_size;

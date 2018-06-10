@@ -4,6 +4,8 @@ SGX_MODE ?= HW
 SGX_ARCH ?= x64
 APP_DIR=App
 ENCLAVE_DIR=Enclave
+IPPCP ?= /home/gsd/tania/install_sgx/linux-sgx/external/ippcp_internal
+# IPP ?= /opt/intel/ipp
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -13,8 +15,10 @@ endif
 
 ifeq ($(SGX_ARCH), x86)
 	$(error x86 build is not supported, only x64!!)
+	IPPCP_LIBRARY_PATH := $(IPPCP)/lib/linux/ia32
 else
 	SGX_COMMON_CFLAGS := -m64 -Wall
+	IPPCP_LIBRARY_PATH := $(IPPCP)/lib/linux/intel64
 	ifeq ($(LINUX_SGX_BUILD), 1)
 		include ../../../../buildenv.mk
 		SGX_LIBRARY_PATH := $(BUILD_DIR)
@@ -39,18 +43,10 @@ $(error Cannot set DEBUG and SGX_PRERELEASE at the same time!!)
 endif
 endif
 
-# Added to build with SgxSSL libraries
-OPENSSL_PACKAGE := $(HOME)/sgxssl/
-SGXSSL_Library_Name := sgx_tsgxssl
-OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
-#TSETJMP_LIB := -lsgx_tsetjmp
-
 ifdef DEBUG
         SGX_COMMON_CFLAGS += -O0 -g
-        OPENSSL_LIBRARY_PATH := $(OPENSSL_PACKAGE)/lib64/debug/
 else
         SGX_COMMON_CFLAGS += -O2 -D_FORTIFY_SOURCE=2
-        OPENSSL_LIBRARY_PATH := $(OPENSSL_PACKAGE)/lib64/release/
 endif
 
 
@@ -75,18 +71,17 @@ endif
 Enclave_C_Files :=  $(wildcard $(ENCLAVE_DIR)/*.c)
 Enclave_C_Objects :=  $(Enclave_C_Files:.c=.o) $(Aux_C_Files:.c=.o)
 
-Enclave_Include_Paths := -I$(ENCLAVE_DIR) -I$(SGX_SDK_INC) -I$(SGX_SDK_INC)/tlibc -I$(STL_PORT_INC)/stlport -I$(OPENSSL_PACKAGE)/include -I$(OPENSSL_PACKAGE)/include/openssl
+Enclave_Include_Paths := -I$(ENCLAVE_DIR) -I$(SGX_SDK_INC) -I$(SGX_SDK_INC)/tlibc -I$(IPPCP)/inc
 
-Common_C_Cpp_Flags := -DOS_ID=$(OS_ID) $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpic -fpie -fstack-protector -fno-builtin-printf -Wformat -Wformat-security $(Enclave_Include_Paths) -include "tsgxsslio.h"
+Common_C_Cpp_Flags := -DOS_ID=$(OS_ID) $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpic -fpie -fstack-protector -fno-builtin-printf -Wformat -Wformat-security $(Enclave_Include_Paths) 
 Enclave_C_Flags := $(Common_C_Cpp_Flags) -Wno-implicit-function-declaration -std=c11
 
-SgxSSL_Link_Libraries := -L$(OPENSSL_LIBRARY_PATH) -Wl,--whole-archive -l$(SGXSSL_Library_Name) -Wl,--no-whole-archive \
-						 -l$(OpenSSL_Crypto_Library_Name)
 Security_Link_Flags := -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -pie
 
 Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles \
 	$(Security_Link_Flags) \
-	$(SgxSSL_Link_Libraries) -L$(SGX_LIBRARY_PATH) \
+	-L$(SGX_LIBRARY_PATH) \
+	-L$(IPPCP_LIBRARY_PATH) -lippcp \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -lsgx_tcrypto $(TSETJMP_LIB) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
