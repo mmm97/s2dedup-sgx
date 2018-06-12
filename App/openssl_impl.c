@@ -128,12 +128,11 @@ int reencrypt(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_size) {
     // *****************************
     // Encode data with server key
     ciphertext = (unsigned char*) malloc (sizeof(unsigned char*) * src_size);
-    iv_out     = (unsigned char*) malloc (sizeof(unsigned char*) * IV_SIZE);
     p_out_mac  = (unsigned char*) malloc (sizeof(unsigned char*) * MAC_SIZE);
 
     iv_out = openssl_rand_str(IV_SIZE);
 
-    ciphertext_size = _encode(SERVER_KEY, iv_out, p_out_mac, ciphertext, plaintext, plaintext_size); 
+    ciphertext_size = _encode(SERVER_KEY, iv_out, p_out_mac, ciphertext, plaintext, plaintext_size);
     
     memcpy(dest, ciphertext, ciphertext_size);
     memcpy(&dest[ciphertext_size], iv_out, IV_SIZE);

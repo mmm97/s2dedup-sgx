@@ -156,7 +156,7 @@ int main(int argc, char const *argv[]) {
 
     int rc, test=1, ciphertext_size, integrity;
     size_t block_size=1024;
-    unsigned int time_to_run=0;
+    unsigned int time_to_run=1;
     uint64_t n_ops=0;
     char zlog_cat[256];
 
