@@ -76,8 +76,8 @@ void trusted_clear_sgx() {
 unsigned int compute_epoch_hash(unsigned char *msg, int msg_size, unsigned char *hash) {    
     sgx_status_t err;
     unsigned int hash_size;
-
-    if (N_OPS == 0 || N_OPS >= MAX_OPS) {
+    
+    if (N_OPS == 0 || ((MAX_OPS > 0) && (N_OPS >= MAX_OPS)) ) {        
         err = sgx_read_rand(EPOCH_KEY, EPOCH_KEY_SIZE);
         if (err != SGX_SUCCESS) usgx_exit("sgx_read_rand", err);
         N_OPS = 0;
