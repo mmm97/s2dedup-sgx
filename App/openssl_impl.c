@@ -19,9 +19,8 @@ void init_u_openssl(char* client_key, int key_size, int iv_size, int mac_size, i
     EPOCH_KEY_SIZE  = key_size; 
 
     CLIENT_KEY      = (unsigned char*) malloc (sizeof(unsigned char) * KEY_SIZE);
-    // SERVER_KEY      = (unsigned char*) malloc (sizeof(unsigned char) * KEY_SIZE);
-    // EPOCH_KEY       = (unsigned char*) malloc (sizeof(unsigned char) * EPOCH_KEY_SIZE);
-
+    SERVER_KEY      = (unsigned char*) malloc (sizeof(unsigned char) * KEY_SIZE);
+    EPOCH_KEY       = (unsigned char*) malloc (sizeof(unsigned char) * EPOCH_KEY_SIZE);    
     memcpy(CLIENT_KEY, client_key, KEY_SIZE);
     auth_init(KEY_SIZE, IV_SIZE, MAC_SIZE, operation_mode);
     SERVER_KEY = openssl_rand_str(KEY_SIZE);
@@ -36,7 +35,7 @@ void clear_u_openssl() {
 unsigned int compute_epoch_hash(unsigned char *msg, int msg_size, unsigned char *hash) {    
     unsigned int hash_size;
 
-    if (N_OPS == 0 || N_OPS >= MAX_OPS) {        
+    if (N_OPS == 0 || ((MAX_OPS > 0) && (N_OPS >= MAX_OPS)) ) {        
         EPOCH_KEY = openssl_rand_str(EPOCH_KEY_SIZE);        
         N_OPS = 0;
     } 
