@@ -1,7 +1,7 @@
 #include "App.h"
 
-#define EPOCH_OPS -1
-// #define EPOCH_OPS 122234797
+// #define EPOCH_OPS -1
+#define EPOCH_OPS 100000
 #define KEY_SIZE 32 
 #define IV_SIZE  12
 #define MAC_SIZE 16
