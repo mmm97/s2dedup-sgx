@@ -134,6 +134,7 @@ int trusted_reencrypt(uint8_t *dest, size_t dest_size, uint8_t* src, size_t src_
     int plaintext_size, ciphertext_size;
     unsigned char *plaintext, *ciphertext, *iv_out, *p_out_mac;
 
+    // printf("<T>input: %d\n", src_size);
     // *****************************
     // Decode data with client key
     plaintext_size = src_size - IV_SIZE - MAC_SIZE;

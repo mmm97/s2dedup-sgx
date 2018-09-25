@@ -12,7 +12,7 @@ run_benchmark() {
     do
 		for r in 1 2
         do
-            for ((i=1; i<=5; i++)); do 
+            for ((i=6; i<=10; i++)); do 
                 echo -e "$1 | TEST $r | BLOCK_SIZE "$b"k | RUN $i" >> $OUTPUT_REPORT 
                 pidstat -C "microbenchmark" 1 -rud -h >> $OUT_DIR'/'$1'/pidstat_report_b'$b'K_r'$r'_'$i'.log' &
                 ./microbenchmark -r$r -b$b -t10
