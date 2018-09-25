@@ -7,18 +7,6 @@
 #define MAC_SIZE 16
 #define HASH_LEN 32
 
-
-struct thread_args
- {
-    unsigned char *dest;
-    int dest_size;
-    unsigned char *ciphertext;
-    int ciphertext_size;
-    unsigned char *hash;
-    int threadid;  
-};
- 
-//  pthread_mutex_t eid_mutex;// = PTHREAD_MUTEX_INITIALIZER;
 unsigned char CLIENT_KEY[KEY_SIZE]  = "C53C0E2F1B0B19AC53C0E2F1B0B19AA";
 
 zlog_category_t *c;
@@ -57,7 +45,6 @@ void randstring(unsigned char *dest, size_t length) {
 /* if the enclave is lost, release its resources, and bring the enclave back up. */
 
 void recreateEnclave() {
-    printf("[ENCLAVE_LOST] old enclave id = %d\n", (int) eid); 
     /* if the enclave is lost, release its resources, and bring the enclave back up. */
     if (SGX_SUCCESS != sgxDestroyEnclave(eid)) exit(EXIT_FAILURE);
     if (SGX_SUCCESS != sgxCreateEnclave()) exit(EXIT_FAILURE);        
@@ -67,38 +54,32 @@ void recreateEnclave() {
 }
 
 /* TEST1: Reencrypt data */
-void *func_test1(void *args_in) {
+double func_test1(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     int res=0;
     clock_t enclave_startTime, enclave_endTime;
-    struct thread_args *args = args_in;
-    printf("Test1: threadid=%d\n", args->threadid);
+    
     enclave_startTime = clock();
-    // pthread_mutex_lock(&eid_mutex);
-    while (trusted_reencrypt(eid, &res, args->dest, args->dest_size, args->ciphertext, args->ciphertext_size) == SGX_ERROR_ENCLAVE_LOST)    
+    while (trusted_reencrypt(eid, &res, dest, dest_len, str, str_len) == SGX_ERROR_ENCLAVE_LOST)    
         recreateEnclave();
-    // pthread_mutex_unlock(&eid_mutex);
     enclave_endTime = clock();
     
-    // return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
-
-    return NULL;
+    return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
 
 /* TEST2: Decrypt data and compute hash */
-void* func_test2(void *args) {
+double func_test2(uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t *hash) {
     int res;
     clock_t enclave_startTime, enclave_endTime;
     
-    // enclave_startTime = clock();
-    // while (trusted_compute_hash(eid, &res, hash, HASH_LEN, str, str_len) == SGX_ERROR_ENCLAVE_LOST) 
-    //     recreateEnclave();    
-    // enclave_endTime = clock();
+    enclave_startTime = clock();
+    while (trusted_compute_hash(eid, &res, hash, HASH_LEN, str, str_len) == SGX_ERROR_ENCLAVE_LOST) 
+        recreateEnclave();    
+    enclave_endTime = clock();
 
-    // return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
-    return NULL;
+    return (double)(enclave_endTime - enclave_startTime) / CLOCKS_PER_SEC;
 }
 
-void *run_test_ops(void* (*func_test)(void*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint64_t n_ops) {
+void run_test_ops(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8_t*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint64_t n_ops) {
     double total_enclave_time_elapsed=0;
     uint64_t ops = 0;
 
@@ -107,8 +88,8 @@ void *run_test_ops(void* (*func_test)(void*), uint8_t *dest, size_t dest_len, ui
 	while (ops < n_ops) 
 	{
 		// call test func
-        // total_enclave_time_elapsed += ((struct thread_args*) args)->func_test(((struct thread_args*) args)->dest, ((struct thread_args*) args)->dest_size, ((struct thread_args*) args)->ciphertext, ((struct thread_args*) args)->ciphertext_size, hash);
-        // ops++;
+        total_enclave_time_elapsed += func_test(dest, dest_len, str, str_len, hash);
+        ops++;
 	}
 
     free(hash);
@@ -117,63 +98,10 @@ void *run_test_ops(void* (*func_test)(void*), uint8_t *dest, size_t dest_len, ui
     printf("\n\nTotal ops:  %lu\n", ops);
     printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
     printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
-    printf("Total time (SGX): %f \n", total_enclave_time_elapsed);     
-
-    return NULL;      
+    printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
 }
-/*
-void *run_test_time(void* (*func_test)(void*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t time_to_run) {
-	unsigned int x_seconds=0, x_last_print_s=0, x_milliseconds=0;
-	unsigned int count_down_time_in_secs, time_left=0;
-	double operation_time=0, total_enclave_time_elapsed=0;
-    clock_t x_startTime, x_countTime;
-    uint64_t ops = 0;
 
-    // struct thread_args *targs = malloc (sizeof(struct thread_args));
-    // targs->dest = dest;
-    // targs->dest_size = dest_len;
-    // targs->ciphertext = str;
-    // targs->ciphertext_size = str_len;
-    
-    unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
-
-    count_down_time_in_secs = time_to_run * 10;
-    x_startTime=clock();  // start clock
-    time_left=count_down_time_in_secs-x_seconds;   // update timer
-	while (time_left>0) {
-        // if ((time_left != x_last_print_s) && (time_left % 10 == 0)) {
-        //     zlog_info(c, "ILAT=%f", operation_time); 
-        //     x_last_print_s = time_left;
-        // }
-            
-        sleep(1);
-        // call test func
-        // args->func_test((void*)args);
-        // func_test((void*)args);
-        // total_enclave_time_elapsed += operation_time;
-        ops++;
-		
-		x_countTime=clock(); 
-        x_milliseconds=x_countTime-x_startTime;
-        x_seconds=(x_milliseconds/(CLOCKS_PER_SEC));
-        time_left=count_down_time_in_secs-x_seconds;
-        printf("%.2d\n", time_left);
-	}
-    // pthread_join(tid,NULL);
-    // zlog_info(c, "ILAT=%f", operation_time);
-    // zlog_info(c, "TETIME=%f", total_enclave_time_elapsed);
-    zlog_info(c, "TOPS=%lu", ops);
-    free(hash);
-    
-    // print results
-    // printf("\n\nTotal ops:  %lu\n", ops);
-    // printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
-    // printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
-    // printf("Total time (SGX): %f \n", total_enclave_time_elapsed);    
-    return NULL;       
-}*/
-/*
-void run_test_time(void* (*func_test)(void*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t time_to_run) {
+void run_test_time(double (*func_test)(uint8_t*, size_t, uint8_t*, size_t, uint8_t*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t time_to_run) {
 	unsigned int x_seconds=0, x_last_print_s=0, x_milliseconds=0;
 	unsigned int count_down_time_in_secs, time_left=0;
 	double operation_time=0, total_enclave_time_elapsed=0;
@@ -187,104 +115,31 @@ void run_test_time(void* (*func_test)(void*), uint8_t *dest, size_t dest_len, ui
 
     time_left=count_down_time_in_secs-x_seconds;   // update timer
 	while (time_left>0) {
-        // if ((time_left != x_last_print_s) && (time_left % 10 == 0)) {
-        //     zlog_info(c, "ILAT=%f", operation_time); 
-        //     x_last_print_s = time_left;
-        // }
+        if ((time_left != x_last_print_s) && (time_left % 10 == 0)) {
+            zlog_info(c, "ILAT=%f", operation_time); 
+            x_last_print_s = time_left;
+        }
             
-        sleep(1);
-
         // call test func
-        // operation_time = func_test(dest, dest_len, str, str_len, hash);    
-        // total_enclave_time_elapsed += operation_time;
+        operation_time = func_test(dest, dest_len, str, str_len, hash);    
+        total_enclave_time_elapsed += operation_time;
         ops++;
 		
 		x_countTime=clock(); 
         x_milliseconds=x_countTime-x_startTime;
         x_seconds=(x_milliseconds/(CLOCKS_PER_SEC));
         time_left=count_down_time_in_secs-x_seconds;
-        printf("%.2d\n", time_left);
 	}
-    // zlog_info(c, "ILAT=%f", operation_time);
-    // zlog_info(c, "TETIME=%f", total_enclave_time_elapsed);
+    zlog_info(c, "ILAT=%f", operation_time);
+    zlog_info(c, "TETIME=%f", total_enclave_time_elapsed);
     zlog_info(c, "TOPS=%lu", ops);
     free(hash);
     
     // print results
     printf("\n\nTotal ops:  %lu\n", ops);
-    // printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
-    // printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
-    // printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
-}
-*/
-
-void run_test_time(void (*func_test)(void*), uint8_t *dest, size_t dest_len, uint8_t *str, size_t str_len, uint8_t time_to_run) {
-	unsigned int x_seconds=0, x_last_print_s=0, x_milliseconds=0;
-	unsigned int count_down_time_in_secs, time_left=0;
-	double operation_time=0, total_enclave_time_elapsed=0;
-    clock_t x_startTime, x_countTime;
-    uint64_t ops = 0;
-    int i, s, NTHREADS=4;
-    pthread_t tid;
-
-    
-    struct thread_args *targs = malloc (sizeof(struct thread_args));
-    targs->dest = dest;
-    targs->dest_size = dest_len;
-    targs->ciphertext = str;
-    targs->ciphertext_size = str_len;
-
-    unsigned char *hash = (unsigned char*) malloc (sizeof(unsigned char) * HASH_LEN);
-
-    count_down_time_in_secs = time_to_run * 5;
-    x_startTime=clock();  // start clock
-
-    time_left=count_down_time_in_secs-x_seconds;   // update timer
-	while (time_left>0) {
-        // if ((time_left != x_last_print_s) && (time_left % 10 == 0)) {
-        //     zlog_info(c, "ILAT=%f", operation_time); 
-        //     x_last_print_s = time_left;
-        // }
-            
-        // call test func
-        // operation_time = func_test(dest, dest_len, str, str_len, hash);    
-        // total_enclave_time_elapsed += operation_time;
-        // ops++;
-		
-        for(i = 0; i < NTHREADS; i++) {
-            struct thread_args *targs = malloc (sizeof(struct thread_args));
-            targs->dest = dest;
-            targs->dest_size = dest_len;
-            targs->ciphertext = str;
-            targs->ciphertext_size = str_len;
-            targs->threadid = i;
-            s = pthread_create(&tid, NULL,
-                           func_test, (void*) targs);
-            ops++;
-            if (s != 0)
-                printf("pthread_create: %d\n", s);
-
-            pthread_join(tid,NULL);
-            free(targs);
-        }
-
-		x_countTime=clock(); 
-        x_milliseconds=x_countTime-x_startTime;
-        x_seconds=(x_milliseconds/(CLOCKS_PER_SEC));
-        time_left=count_down_time_in_secs-x_seconds;
-        // printf("%.2d\n", time_left);
-	}
-    
-    // zlog_info(c, "ILAT=%f", operation_time);
-    // zlog_info(c, "TETIME=%f", total_enclave_time_elapsed);
-    zlog_info(c, "TOPS=%lu", ops);
-    free(hash);
-    
-    // print results
-    printf("\n\nTotal ops:  %lu\n", ops);
-    // printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
-    // printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
-    // printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
+    printf("Throughput: %.3f ops/second\n", (double) ops / total_enclave_time_elapsed);
+    printf("Latency:    %.3f miliseconds\n", (total_enclave_time_elapsed / ops) * 1000);
+    printf("Total time (SGX): %f \n", total_enclave_time_elapsed);           
 }
 
 void usage(void){
@@ -298,7 +153,6 @@ void usage(void){
 
 int check_integrity(uint8_t* plaintext, size_t plaintext_size, uint8_t *ciphertext, size_t ciphertext_size) {
 
-    printf("Check integrity...\n");
     sgx_status_t err;
     unsigned char *aux_plaintext;
     int aux_plaintext_size, integrity = EXIT_FAILURE;
@@ -318,9 +172,7 @@ int check_integrity(uint8_t* plaintext, size_t plaintext_size, uint8_t *cipherte
     return integrity;
 }
 
- 
 int main(int argc, char const *argv[]) {
-
 
     sgx_status_t err;
     int rc, test=1, ciphertext_size, integrity;
@@ -328,11 +180,6 @@ int main(int argc, char const *argv[]) {
     unsigned int time_to_run=0;
     uint64_t n_ops=0;
     char zlog_cat[256];
-
-    
-   
-    // int rcm = pthread_mutex_init(&eid_mutex, NULL); assert(rcm == 0); // always check success!  
-
 
     rc = zlog_init("conf/zlog.conf");
 	if (rc) {
@@ -406,6 +253,7 @@ int main(int argc, char const *argv[]) {
     memcpy(&ciphertext[ciphertext_size+IV_SIZE], mac, MAC_SIZE);
     ciphertext_size = block_size + IV_SIZE + MAC_SIZE;
 
+
     if (n_ops > 0) printf("SGXSSL | Running test %d with block_size = %ldB and n_ops = %lu\n", test, block_size, n_ops);
     else printf("SGXSSL | Running test %d with block_size = %ldB and time_to_run = %um\n", test, block_size, time_to_run);
 
@@ -417,7 +265,8 @@ int main(int argc, char const *argv[]) {
         case 2:         
             if (n_ops > 0) run_test_ops(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, n_ops);
             else run_test_time(func_test2, dest, ciphertext_size, ciphertext, ciphertext_size, time_to_run);
-            break;       
+            break;
+            
     }
 
     // Check integrity
@@ -438,8 +287,6 @@ int main(int argc, char const *argv[]) {
     free(iv);
 
     zlog_fini();
-
-    // pthread_exit(NULL);
 
     return EXIT_SUCCESS;
 }
