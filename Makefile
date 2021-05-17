@@ -1,6 +1,6 @@
 ######## SGX SDK Settings ########
 SGX_SDK	 ?= /opt/intel/sgxsdk
-SGX_MODE ?= HW
+SGX_MODE ?= SIM
 SGX_ARCH ?= x64
 APP_DIR=App
 ENCLAVE_DIR=Enclave
@@ -41,17 +41,17 @@ endif
 endif
 
 # Added to build with SgxSSL libraries
-OPENSSL_PACKAGE := $(HOME)/sgxssl/
+OPENSSL_PACKAGE := /opt/intel/sgxssl
 SGXSSL_Library_Name := sgx_tsgxssl
 OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
 #TSETJMP_LIB := -lsgx_tsetjmp
 
 ifdef DEBUG
         SGX_COMMON_CFLAGS += -O0 -g
-        OPENSSL_LIBRARY_PATH := $(OPENSSL_PACKAGE)/lib64/debug/
+        OPENSSL_LIBRARY_PATH := $(OPENSSL_PACKAGE)/lib64/
 else
         SGX_COMMON_CFLAGS += -O2 -D_FORTIFY_SOURCE=2
-        OPENSSL_LIBRARY_PATH := $(OPENSSL_PACKAGE)/lib64/release/
+        OPENSSL_LIBRARY_PATH := $(OPENSSL_PACKAGE)/lib64/
 endif
 
 
@@ -80,7 +80,7 @@ Enclave_C_Objects :=  $(Enclave_C_Files:.c=.o) $(Aux_C_Files:.c=.o)
 Enclave_Include_Paths := -I$(ENCLAVE_DIR) -I$(DRIVER_OPENSSL_DIR) -I$(SGX_SDK_INC) -I$(SGX_SDK_INC)/tlibc -I$(STL_PORT_INC)/stlport -I$(OPENSSL_PACKAGE)/include -I$(OPENSSL_PACKAGE)/include/openssl
 
 Common_C_Cpp_Flags := -DOS_ID=$(OS_ID) $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpic -fpie -fstack-protector -fno-builtin-printf -Wformat -Wformat-security $(Enclave_Include_Paths) -include "tsgxsslio.h"
-Enclave_C_Flags := $(Common_C_Cpp_Flags) -Wno-implicit-function-declaration -std=c11
+Enclave_C_Flags := $(Common_C_Cpp_Flags) -Wno-implicit-function-declaration -std=c11 
 
 SgxSSL_Link_Libraries := -L$(OPENSSL_LIBRARY_PATH) -Wl,--whole-archive -l$(SGXSSL_Library_Name) -Wl,--no-whole-archive \
 						 -l$(OpenSSL_Crypto_Library_Name)
@@ -90,10 +90,10 @@ Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefau
 	$(Security_Link_Flags) \
 	$(SgxSSL_Link_Libraries) -L$(SGX_LIBRARY_PATH) \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-	-Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -lsgx_tcrypto $(TSETJMP_LIB) -l$(Service_Library_Name) -Wl,--end-group \
+	-Wl,--start-group -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto $(TSETJMP_LIB) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
 	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
-	-Wl,--defsym,__ImageBase=0 \
+	-Wl,--defsym,__ImageBase=0  \
 	-Wl,--version-script=$(ENCLAVE_DIR)/Enclave.lds
 	
 
@@ -155,8 +155,9 @@ all: $(App_Name) $(OUTPUT_T)
 
 $(APP_DIR)/Enclave_u.c: $(SGX_EDGER8R) $(ENCLAVE_DIR)/$(ENCLAVE_EDL)
 	@cd $(APP_DIR) && $(SGX_EDGER8R) --untrusted ../$(ENCLAVE_DIR)/$(ENCLAVE_EDL) --search-path ../$(ENCLAVE_DIR) --search-path $(SGX_SDK)/include
-	@echo "GEN  =>  $@"
-
+	@echo "GEN  =>  $@"	
+	@echo "GEN  =>  $(SGX_LIBRARY_PATH)"
+	
 $(APP_DIR)/Enclave_u.o: $(APP_DIR)/Enclave_u.c
 	@$(CC) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"

@@ -22,12 +22,13 @@ enclave {
 
 
     trusted {
-        public int trusted_decode([out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
+        public int trusted_decode([out, size=dest_size] uint8_t *dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size, uint64_t src_offset);
 
-        public void trusted_init_sgx([in, size=key_size] unsigned char* client_key, int key_size, int iv_size, int mac_size, int operation_mode, int ops);    
+        public void trusted_init_sgx([in, size=key_size] unsigned char* client_key, int key_size, int tweak_size, int security_level, int epoch_or_threshold);    
         public void trusted_clear_sgx();
 
-        public int trusted_reencrypt([out, size=dest_size] uint8_t* dest, size_t dest_size, [in, size=src_size] uint8_t* src, size_t src_size);
-        public int trusted_compute_hash([out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=data_size] uint8_t *data, size_t data_size);
+        public int trusted_reencrypt([out, size=dest_size] uint8_t* dest, size_t dest_size, uint64_t dest_offset, [in, size=src_size] uint8_t* src, size_t src_size, uint64_t src_offset);
+        public int trusted_reencrypt_reverse([out, size=dest_size] uint8_t* dest, size_t dest_size, uint64_t dest_offset, [in, size=src_size] uint8_t* src, size_t src_size, uint64_t src_offset);
+        public int trusted_compute_hash([out, size=digest_size] uint8_t *digest, size_t digest_size, [in, size=data_size] uint8_t *data, size_t data_size, uint64_t data_offset);
     };
 };
